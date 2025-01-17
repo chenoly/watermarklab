@@ -61,6 +61,28 @@ class MyWatermarkModel(BaseWatermarkModel):
         extracted_watermark = [0, 1, 0, 1]  # Example: return a fixed watermark
         return wl.Result(ext_bits=extracted_watermark)
 
+class Mydataloader(BaseLoader):
+    def __init__(self, root_path: str, bit_length, iter_num: int):
+        super().__init__(iter_num)
+        self.root_path = root_path
+        self.bit_length = bit_length
+        self.covers = []
+        self.load_paths()
+
+    def load_paths(self):
+        self.covers = glob.glob(os.path.join(self.root_path, '*.png'), recursive=True)
+        # self.covers = [i for i in range(10)]
+
+    def load_cover_secret(self, index: int):
+        cover = np.float32(Image.open(self.covers[index]))
+        random.seed(index)
+        secret = [random.randint(0, 1) for _ in range(self.bit_length)]
+        return cover, secret
+
+    def get_num_covers(self):
+        return len(self.covers)
+
+
 # Create a watermark lab
 noise_models = [
     wl.NoiseModelWithFactors(noisemodel=Jpeg(), noisename="JPEG Compression", factors=[50, 70, 90]),
@@ -70,7 +92,7 @@ wlab = wl.WLab(save_path="results", noise_models=noise_models)
 
 # Test the watermark model
 model = MyWatermarkModel(bits_len=256, img_size=512, modelname="MyModel")
-dataset = BaseLoader(iter_num=10)  # Example dataset
+dataset = Mydataloader(..., iter_num=10)  # Example dataset
 wlab.test(model, dataset)
 ```
 
@@ -98,6 +120,27 @@ class RRW(BaseWatermarkModel):
         extracted_watermark = [0, 1, 0, 1]  # Example: return a fixed watermark
         return wl.Result(ext_bits=extracted_watermark)
 
+class Mydataloader(BaseLoader):
+    def __init__(self, root_path: str, bit_length, iter_num: int):
+        super().__init__(iter_num)
+        self.root_path = root_path
+        self.bit_length = bit_length
+        self.covers = []
+        self.load_paths()
+
+    def load_paths(self):
+        self.covers = glob.glob(os.path.join(self.root_path, '*.png'), recursive=True)
+        # self.covers = [i for i in range(10)]
+
+    def load_cover_secret(self, index: int):
+        cover = np.float32(Image.open(self.covers[index]))
+        random.seed(index)
+        secret = [random.randint(0, 1) for _ in range(self.bit_length)]
+        return cover, secret
+
+    def get_num_covers(self):
+        return len(self.covers)
+
 # Main program
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -107,7 +150,7 @@ if __name__ == "__main__":
 
     # Initialize model and data loader
     rrw = RRW(root_path="data", bit_length=args.bit_length, img_size=args.img_size, modelname="RRW")
-    dataset = BaseLoader(iter_num=10)
+    dataset = Mydataloader(..., iter_num=10)
 
     # Define noise models
     noise_models = [
