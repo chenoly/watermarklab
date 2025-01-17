@@ -4,8 +4,8 @@
   <img src="./figures/logo.svg" alt="WatermarkLab Logo" width="150">
 </p>
 
-**WatermarkLab** 
-is a powerful toolkit for robust image watermarking research and development. It provides a complete suite of tools for watermark embedding, extraction, robustness testing, and performance evaluation, helping researchers and developers easily implement and evaluate robust image watermarking algorithms.
+**WatermarkLab** is a powerful toolkit for robust image watermarking research and development. It provides a complete suite of tools for watermark embedding, extraction, robustness testing, and performance evaluation, helping researchers and developers easily implement and evaluate robust image watermarking algorithms.
+
 ---
 
 ## Table of Contents
