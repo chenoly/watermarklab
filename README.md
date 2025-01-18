@@ -50,7 +50,7 @@ pip install watermarklab
 Here’s a simple example to demonstrate how to use WatermarkLab for watermark embedding and extraction:
 ```bash
 import watermarklab as wl
-from watermarklab.basemodel import BaseWatermarkModel, BaseLoader
+from watermarklab.basemodel import BaseWatermarkModel, BaseLoader, NoiseModelWithFactors
 from watermarklab.noiselayers.testdistortions import Jpeg, GaussianBlur
 
 # Custom watermark model
@@ -89,8 +89,8 @@ class Mydataloader(BaseLoader):
 
 # Create a watermark lab
 noise_models = [
-    wl.NoiseModelWithFactors(noisemodel=Jpeg(), noisename="JPEG Compression", factors=[50, 70, 90]),
-    wl.NoiseModelWithFactors(noisemodel=GaussianBlur(), noisename="Gaussian Blur", factors=[1.0, 2.0, 3.0]),
+    NoiseModelWithFactors(noisemodel=Jpeg(), factorsymbol="$\sigma$", noisename="JPEG Compression", factors=[50, 70, 90]),
+    NoiseModelWithFactors(noisemodel=GaussianBlur(), factorsymbol="$\sigma$", noisename="Gaussian Blur", factors=[1.0, 2.0, 3.0]),
 ]
 wlab = wl.WLab(save_path="results", noise_models=noise_models)
 
@@ -105,7 +105,7 @@ Here’s a more advanced example demonstrating how to use WatermarkLab for robus
 ```bash
 import argparse
 import watermarklab as wl
-from watermarklab.basemodel import BaseWatermarkModel, BaseLoader
+from watermarklab.basemodel import BaseWatermarkModel, BaseLoader, NoiseModelWithFactors
 from watermarklab.noiselayers.testdistortions import Jpeg, GaussianBlur
 
 # Custom watermark model
@@ -158,8 +158,8 @@ if __name__ == "__main__":
 
     # Define noise models
     noise_models = [
-        wl.NoiseModelWithFactors(noisemodel=Jpeg(), noisename="JPEG Compression", factors=[50, 70, 90]),
-        wl.NoiseModelWithFactors(noisemodel=GaussianBlur(), noisename="Gaussian Blur", factors=[1.0, 2.0, 3.0]),
+        NoiseModelWithFactors(noisemodel=Jpeg(), factorsymbol="$\sigma$", noisename="JPEG Compression", factors=[50, 70, 90]),
+        NoiseModelWithFactors(noisemodel=GaussianBlur(), factorsymbol="$\sigma$", noisename="Gaussian Blur", factors=[1.0, 2.0, 3.0]),
     ]
 
     # Create a watermark lab and run tests

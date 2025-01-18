@@ -1,7 +1,8 @@
 import torch
 import random
 from torch import nn
-from diffdistortions import *
+from watermarklab.noiselayers.diffdistortions import *
+
 
 
 class DigitalDistortion(nn.Module):
@@ -69,7 +70,7 @@ class DigitalDistortion(nn.Module):
             if key == "Identity":
                 self.noise_layers["Identity"] = Identity(max_step=max_step)
             if key == "RandomCompensateTrans":
-                self.noise_layers["RandomCompensateTrans"] = RandomCompensateTrans(max_step=max_step, shift_d=noise_dict[key])
+                self.noise_layers["RandomCompensateTrans"] = RandomCompensateTransformer(max_step=max_step, shift_d=noise_dict[key])
 
     def stair_k(self, now_step: int) -> int:
         """

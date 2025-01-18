@@ -1,21 +1,22 @@
 import math
+import cv2
 import torch
 import kornia
 import random
 import itertools
 import numpy as np
 import torch.nn as nn
-from typing import Tuple
 from torch import Tensor
+from typing import Tuple
 import torch.nn.functional as F
 from kornia.filters import MedianBlur
 from torch.nn.functional import conv2d
 import torchvision.transforms as transforms
 from watermarklab.basemodel import BaseDiffNoiseModel
 
-__all__ = ["Identity", "GaussianBlur",
+__all__ = ["Identity", "GaussianBlur", "MedianFilter",
            "GaussianNoise", "Jpeg", "SaltPepperNoise",
-           "FieldOfViewTransformer", "RandomCompensateTransformer", "MedianBlur",
+           "FieldOfViewTransformer", "RandomCompensateTransformer",
            "Dropout", "Cropout", "Contrast", "ScreenCapture",
            "Hue", "Brightness", "Saturation", "Resize", "Rotate"]
 
@@ -154,6 +155,26 @@ class GaussianBlur(BaseDiffNoiseModel):
 
         return noised_img.clamp(0, 1.)
 
+    def test(self, marked_img: Tensor, cover_img: Tensor = None, sigma: float = 1.5) -> Tensor:
+        """
+        Applies Gaussian blur to the input tensor using specified sigma values.
+
+        Parameters:
+        - marked_img: torch.Tensor - Input tensor of shape (batch_size, channels, height, width).
+        - cover_img: torch.Tensor (Optional) - Not used in this implementation.
+        - sigmas: Tuple[float, float] - Sigma values for the Gaussian blur.
+
+        Returns:
+        - noised_img: torch.Tensor - Blurred tensor with values clamped between [0, 1].
+        """
+        b, c, h, w = marked_img.shape  # Get input tensor shape
+        # Compute Gaussian kernel and padding, adjust to input device
+        padding, kernel = self.compute_gaussian_kernel2d((sigma, sigma), True)
+        kernel = kernel.to(marked_img.device).repeat(c, 1, 1, 1)
+        # Apply Gaussian blur with conv2d and clamp result
+        noised_img = conv2d(marked_img, kernel, padding=padding, stride=1, groups=c)
+        return noised_img.clamp(0, 1.)
+
 
 class Brightness(BaseDiffNoiseModel):
     def __init__(self, brightness_factor: float = 0.15, prob: float = 0.8, max_step: int = 100):
@@ -196,6 +217,22 @@ class Brightness(BaseDiffNoiseModel):
         # Clamp pixel values to [0, 1] range
         return noised_img.clamp(0, 1.)
 
+    def test(self, marked_img, cover_img=None, brightness_factor: float = 0.15):
+        """
+        Applies the brightness transformation to the input image tensor.
+
+        Parameters:
+        - marked_img (Tensor): The input image tensor.
+        - cover_img (Tensor, optional): Optional cover image (not used in this transformation).
+        - brightness_factor (float): The factor by which to adjust brightness for testing.
+
+        Returns:
+        - noised_img (Tensor): Brightness-adjusted image tensor, clamped to [0, 1].
+        """
+        # Adjust brightness using ColorJitter with the specified factor
+        noised_img = transforms.ColorJitter(brightness=brightness_factor)(marked_img)
+        return noised_img.clamp(0, 1.)
+
 
 class Contrast(BaseDiffNoiseModel):
     def __init__(self, contrast_factor: float = 0.15, prob: float = 0.8, max_step: int = 100):
@@ -236,6 +273,23 @@ class Contrast(BaseDiffNoiseModel):
             noised_img = transforms.ColorJitter(contrast=_contrast_factor)(marked_img)
 
         # Clamp pixel values to [0, 1] range
+        return noised_img.clamp(0, 1.)
+
+    def test(self, marked_img, cover_img=None, now_step: int = 0, contrast_factor: float = 0.15):
+        """
+        Applies the contrast transformation to the input image tensor for testing.
+
+        Args:
+            marked_img (Tensor): The input image tensor.
+            cover_img (Tensor, optional): An optional cover image tensor (not used in this transform).
+            now_step (int): Current step for dynamic adjustment of contrast factor (not used here).
+            contrast_factor (float): The factor by which to adjust contrast for testing.
+
+        Returns:
+            Tensor: The transformed image tensor, clamped to [0, 1].
+        """
+        # Adjust contrast using ColorJitter with the specified factor
+        noised_img = transforms.ColorJitter(contrast=contrast_factor)(marked_img)
         return noised_img.clamp(0, 1.)
 
 
@@ -294,6 +348,22 @@ class MedianFilter(BaseDiffNoiseModel):
 
         return noised_img.clamp(0, 1.)  # Clamp pixel values to [0, 1]
 
+    def test(self, marked_img: torch.Tensor, cover_img: torch.Tensor = None, kernel: int = 7) -> torch.Tensor:
+        """
+        Applies the median filter to the input image tensor for testing.
+
+        Args:
+            marked_img (torch.Tensor): The input image tensor.
+            cover_img (torch.Tensor, optional): An optional cover image tensor (not used in this method).
+            kernel (int): The kernel size to use for the median filter (default is 7).
+
+        Returns:
+            torch.Tensor: The resulting image after applying the median filter, clamped to [0, 1].
+        """
+        _kernel = (kernel, kernel)  # Define the kernel size
+        noised_img = MedianBlur(_kernel)(marked_img)  # Apply the median blur
+        return noised_img.clamp(0, 1.)  # Clamp pixel values to [0, 1]
+
 
 class Saturation(BaseDiffNoiseModel):
     def __init__(self, saturation_factor: float = 0.15, prob: float = 0.8, max_step: int = 100):
@@ -332,6 +402,22 @@ class Saturation(BaseDiffNoiseModel):
 
         return noised_img.clamp(0, 1.)  # Clamp pixel values to [0, 1]
 
+    def test(self, marked_img: torch.Tensor, cover_img: torch.Tensor = None,
+             saturation_factor: float = 0.15) -> torch.Tensor:
+        """
+        Apply the saturation transformation for testing.
+
+        Args:
+            marked_img (torch.Tensor): The input image tensor.
+            cover_img (torch.Tensor, optional): An optional cover image tensor (not used in this transform).
+            saturation_factor (float): The saturation factor to apply during testing.
+
+        Returns:
+            torch.Tensor: The transformed image, clamped to [0, 1].
+        """
+        noised_img = transforms.ColorJitter(saturation=saturation_factor)(marked_img)
+        return noised_img.clamp(0, 1.)  # Clamp pixel values to [0, 1]
+
 
 class Hue(BaseDiffNoiseModel):
     def __init__(self, hue_factor: float = 0.1, prob: float = 0.8, max_step: int = 100):
@@ -368,6 +454,21 @@ class Hue(BaseDiffNoiseModel):
         if random.uniform(0., 1.) < self.prob:
             noised_img = transforms.ColorJitter(hue=_hue_factor)(marked_img)
 
+        return noised_img.clamp(0, 1.)  # Clamp pixel values to [0, 1]
+
+    def test(self, marked_img: torch.Tensor, cover_img: torch.Tensor = None, hue_factor: float = 0.1) -> torch.Tensor:
+        """
+        Apply the hue transformation for testing.
+
+        Args:
+            marked_img (torch.Tensor): The input image tensor.
+            cover_img (torch.Tensor, optional): An optional cover image tensor (not used in this transform).
+            hue_factor (float): The hue factor to apply during testing.
+
+        Returns:
+            torch.Tensor: The transformed image, clamped to [0, 1].
+        """
+        noised_img = transforms.ColorJitter(hue=hue_factor)(marked_img)
         return noised_img.clamp(0, 1.)  # Clamp pixel values to [0, 1]
 
 
@@ -425,6 +526,28 @@ class Cropout(BaseDiffNoiseModel):
             else:
                 # Replace the masked area with a constant value
                 noised_img = marked_img * crop_out_mask + (1 - crop_out_mask) * self.constant
+
+        return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
+
+    def test(self, marked_img: Tensor, cover_img: Tensor, remain_ratio=0.7) -> Tensor:
+        """
+        Applies the Cropout operation to the input image for testing.
+
+        Args:
+            marked_img (Tensor): The marked image tensor.
+            cover_img (Tensor): The cover image tensor.
+
+        Returns:
+            Tensor: The resulting image after applying Cropout.
+        """
+        # Generate a cropout mask for the test phase
+        crop_out_mask = self.random_rectangle_mask(marked_img, remain_ratio)
+        if self.mode == "cover_pad":
+            # Replace the masked area with the cover image
+            noised_img = marked_img * crop_out_mask + (1 - crop_out_mask) * cover_img
+        else:
+            # Replace the masked area with a constant value
+            noised_img = marked_img * crop_out_mask + (1 - crop_out_mask) * self.constant
 
         return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
 
@@ -530,6 +653,30 @@ class Dropout(BaseDiffNoiseModel):
 
         return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
 
+    def test(self, marked_img: Tensor, cover_image: Tensor, drop_prob=0.3) -> Tensor:
+        """
+        Applies dropout to the input image during testing.
+
+        Args:
+            marked_img (Tensor): The marked image tensor.
+            cover_image (Tensor): The cover image tensor.
+            drop_prob (float): Probability of dropping a pixel during testing.
+
+        Returns:
+            Tensor: The resulting image after applying dropout.
+        """
+        # Create a mask based on the drop probability
+        mask = torch.bernoulli(torch.full(marked_img.shape, 1 - drop_prob))
+        mask_tensor = mask.to(marked_img.device).float()  # Convert mask to float and move to the correct device
+
+        # Apply the chosen dropout mode
+        if self.mode == "cover_pad":
+            noised_img = marked_img * mask_tensor + cover_image * (1 - mask_tensor)
+        else:
+            noised_img = marked_img * mask_tensor + self.constant * (1 - mask_tensor)
+
+        return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
+
 
 class GaussianNoise(BaseDiffNoiseModel):
     def __init__(self, mu: float = 0, std: float = 1.5, intensity: float = 0.01, prob: float = 0.8,
@@ -578,8 +725,26 @@ class GaussianNoise(BaseDiffNoiseModel):
 
         return out_img.clamp(0, 1.)  # Clamp values to [0, 1]
 
+    def test(self, marked_img: Tensor, cover_img: Tensor = None, std: float = 1.5) -> Tensor:
+        """
+        Applies Gaussian noise to the input image during testing.
 
-class SaltPepperNoise(nn.Module):
+        Args:
+            marked_img (Tensor): The input image to which noise will be added.
+            cover_img (Tensor, optional): A cover image, not used in this implementation.
+            std (float): Standard deviation of the Gaussian noise during testing.
+
+        Returns:
+            Tensor: The noised image.
+        """
+        # Generate Gaussian noise using the specified standard deviation
+        noise = torch.normal(self.mu, std, size=marked_img.shape).to(marked_img.device)
+        # Apply the noise to the input image
+        noised_img = self.intensity * noise + marked_img
+        return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
+
+
+class SaltPepperNoise(BaseDiffNoiseModel):
     def __init__(self, noise_ratio: float = 0.1, noise_prob: float = 0.5, prob: float = 0.8,
                  max_step: int = 100):
         """
@@ -597,44 +762,74 @@ class SaltPepperNoise(nn.Module):
         self.prob = max(min(prob, 1.), 0.)  # Clamp overall probability between 0 and 1
         self.max_step = max(max_step, 1)
 
-    def forward(self, marked_img: Tensor, cover_img: Tensor = None, now_step: int = 0) -> Tensor:
+    def apply_noise(self, img: Tensor, noise_ratio: float) -> Tensor:
         """
-        Applies salt and pepper noise to the input image.
+        Applies traditional salt and pepper noise to the input image.
 
         Args:
-            marked_img (Tensor): The input image to which noise will be added.
+            img (Tensor): The input image (C, H, W).
+            noise_ratio (float): Proportion of pixels to be noised.
+
+        Returns:
+            Tensor: The noised image.
+        """
+        noised_img = img.clone()  # Avoid modifying the original image
+        num_noisy_pixels = int(noise_ratio * img[0].numel())  # Number of pixels to noised
+
+        # Generate random indices for the positions of the noisy pixels
+        indices = torch.randperm(img[0].numel(), device=img.device)[:num_noisy_pixels]
+
+        # Convert 1D indices to 2D positions (height, width)
+        noisy_positions = torch.unravel_index(indices, img.shape[-2:])
+
+        # Generate random values to decide between "salt" (1) or "pepper" (0)
+        random_noise = torch.rand(num_noisy_pixels, device=img.device)
+        salt_pepper_values = torch.where(random_noise < self.noise_prob, torch.ones_like(random_noise),
+                                         torch.zeros_like(random_noise))
+
+        # Apply the same noise to all channels
+        for c in range(img.shape[0]):  # Iterate over channels
+            noised_img[c, noisy_positions[0], noisy_positions[1]] = salt_pepper_values
+
+        return noised_img
+
+    def forward(self, marked_img: Tensor, cover_img: Tensor = None, now_step: int = 0) -> Tensor:
+        """
+        Applies salt and pepper noise to the input image during training.
+
+        Args:
+            marked_img (Tensor): The input image (C, H, W).
             cover_img (Tensor, optional): A cover image, not used in this implementation.
             now_step (int): Current step to adjust noise ratio.
 
         Returns:
             Tensor: The noised image.
         """
-        noised_img = marked_img.clone()  # Avoid modifying the original image
-        _noise_ratio = min(now_step, self.max_step) / self.max_step * self.noise_ratio  # Adjust noise ratio
+        noised_img = marked_img.clone()
+        _noise_ratio = min(now_step / self.max_step, 1.0) * self.noise_ratio  # Adjust noise ratio
 
         # Apply noise only if a random value is less than the defined probability
         if random.uniform(0, 1) < self.prob:
-            # Calculate the number of pixels to which noise will be applied
-            num_noisy_pixels = int(_noise_ratio * marked_img[0].numel())  # Use the first channel for pixel count
-
-            # Generate random indices for the positions of the noisy pixels
-            indices = torch.randperm(marked_img[0].numel(), device=marked_img.device)[:num_noisy_pixels]
-
-            # Reshape the indices to match the image dimensions (height, width)
-            noisy_positions = torch.unravel_index(indices, marked_img.shape[-2:])
-
-            # Generate random values to decide between "salt" and "pepper"
-            random_noise = torch.rand(num_noisy_pixels, device=marked_img.device)
-
-            # Create salt (1) or pepper (0) values based on noise probability
-            salt_pepper_values = torch.where(random_noise < self.noise_prob, torch.ones_like(random_noise),
-                                             torch.zeros_like(random_noise))
-
-            # Apply the salt and pepper noise to the selected positions in all channels
-            for c in range(marked_img.shape[0]):  # Iterate over channels
-                noised_img[c, noisy_positions[0], noisy_positions[1]] = salt_pepper_values
+            noised_img = self.apply_noise(noised_img, _noise_ratio)
 
         return noised_img.clamp(0, 1)  # Clamp values to [0, 1]
+
+    def test(self, marked_img: Tensor, cover_img: Tensor = None, noise_ratio: float = 0.1) -> Tensor:
+        """
+        Applies salt and pepper noise to the input image during testing.
+
+        Args:
+            marked_img (Tensor): The input image (C, H, W).
+            cover_img (Tensor, optional): A cover image, not used in this implementation.
+            noise_ratio (float): Proportion of pixels to be noised during testing.
+
+        Returns:
+            Tensor: The noised image.
+        """
+        noised_img = marked_img.clone()
+        noised_img = self.apply_noise(noised_img, noise_ratio)
+        return noised_img.clamp(0, 1)
+
 
 
 class Resize(BaseDiffNoiseModel):
@@ -707,6 +902,43 @@ class Resize(BaseDiffNoiseModel):
 
         return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
 
+    def test(self, marked_img: Tensor, cover_img: Tensor = None, scale_p: float = 0.8) -> torch.Tensor:
+        """
+        Resizes the input image during testing using a specified scale factor.
+
+        Args:
+            marked_img (Tensor): Input image tensor of shape (N, C, H, W).
+            cover_img (Tensor, optional): Not used in this operation.
+            scale_p (float): Scale factor for resizing during testing.
+
+        Returns:
+            Tensor: Resized image tensor of the same shape as the input.
+        """
+        H, W = marked_img.shape[-2:]
+        # Randomly determine the scaling factors for height and width
+        p_h = random.randint(int(scale_p * 1000), 1001) / 1000.  # Scale for height
+        p_w = random.randint(int(scale_p * 1000), 1001) / 1000.  # Scale for width
+
+        # Calculate the new scaled height and width
+        scaled_h = int(p_h * H)
+        scaled_w = int(p_w * W)
+
+        # Downscale the image to the new dimensions
+        noised_down = F.interpolate(
+            marked_img,
+            size=(scaled_h, scaled_w),
+            mode=self.mode
+        )
+
+        # Upscale the downscaled image back to the original dimensions
+        noised_img = F.interpolate(
+            noised_down,
+            size=(H, W),
+            mode=self.mode
+        )
+
+        return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
+
 
 class Rotate(BaseDiffNoiseModel):
     def __init__(self, angle: int = 180, prob: float = 0.8, max_step: int = 100):
@@ -747,6 +979,23 @@ class Rotate(BaseDiffNoiseModel):
             angle = random.randint(0, _angle)
             rotate = transforms.RandomRotation(angle, expand=False, center=None, fill=0)
             noised_img = rotate(marked_img)
+
+        return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
+
+    def test(self, marked_img: Tensor, cover_img: Tensor = None, angle: int = 180) -> Tensor:
+        """
+        Applies rotation to the input image during testing.
+
+        Args:
+            marked_img (Tensor): The input image tensor of shape (N, C, H, W).
+            cover_img (Tensor, optional): Not used in this operation.
+            angle (int): Angle (in degrees) for rotation during testing.
+
+        Returns:
+            Tensor: The resulting image after applying rotation.
+        """
+        rotate = transforms.RandomRotation(angle, expand=False, center=None, fill=0)
+        noised_img = rotate(marked_img)
 
         return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
 
@@ -1075,6 +1324,50 @@ class FieldOfViewTransformer(nn.Module):
         return warped_img, warped_img_mask, warped_pts
 
 
+class TestJpeg(nn.Module):
+    def __init__(self, Q):
+        """
+        Initialize the TestJpeg module.
+
+        Args:
+            Q (int): JPEG quality factor for compression.
+        """
+        super(TestJpeg, self).__init__()
+        self.Q = Q  # Set quality factor
+
+    def forward(self, marked_img):
+        """
+        Forward pass for JPEG compression and decompression.
+
+        Args:
+            marked_img (Tensor): Input image tensor with shape (N, C, H, W).
+
+        Returns:
+            Tensor: Noised image tensor after JPEG processing.
+        """
+        N, C, H, W = marked_img.shape  # Extract dimensions
+        marked_img = torch.clip(marked_img, 0, 1)  # Clip values to range [0, 1]
+        noised_image = torch.zeros_like(marked_img)  # Initialize output tensor
+        for i in range(N):
+            # Convert the single image to uint8 format for OpenCV
+            single_image = (marked_img[i].permute(1, 2, 0) * 255).to('cpu', torch.uint8).numpy()
+            if single_image.shape[2] == 1:
+                single_image_for_compression = single_image[:, :, 0]
+            else:
+                single_image_for_compression = single_image
+            result, encoded_img = cv2.imencode('.jpg', single_image_for_compression, [cv2.IMWRITE_JPEG_QUALITY, self.Q])
+            if result:  # Check if encoding was successful
+                compressed_img = np.frombuffer(encoded_img, dtype=np.uint8)  # Convert encoded image to numpy array
+                if single_image.shape[2] == 1:
+                    decoded_image = cv2.imdecode(compressed_img, cv2.IMREAD_GRAYSCALE)  # Decode the compressed image
+                    noised_image[i] = torch.as_tensor(decoded_image).unsqueeze(0) / 255.
+                else:
+                    decoded_image = cv2.imdecode(compressed_img, cv2.IMREAD_COLOR)  # Decode the compressed image
+                    noised_image[i] = torch.as_tensor(decoded_image).permute(2, 0, 1) / 255.  # Store the decoded image
+        noised_image = noised_image.to(marked_img.device)  # Move output tensor to the original device
+        return noised_image  # Return the processed image
+
+
 class DiffJpeg(nn.Module):
     def __init__(self, Q: int, round_mode="mask_round"):
         super().__init__()
@@ -1344,6 +1637,21 @@ class Jpeg(BaseDiffNoiseModel):
 
         # Process the marked image with DiffJpeg
         noised_img = DiffJpeg(_Q, round_mode=self.round_mode)(marked_img)
+        return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
+
+    def test(self, marked_img: Tensor, cover_img=None, Q: int = 50):
+        """
+        Test mode for JPEG processing.
+
+        Args:
+            marked_img (Tensor): Input image tensor.
+            cover_img (Tensor, optional): Cover image tensor (unused).
+            Q (int): JPEG quality factor for testing.
+
+        Returns:
+            Tensor: Noised image tensor after JPEG processing.
+        """
+        noised_img = TestJpeg(Q)(marked_img)  # Process the image with TestJpeg
         return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
 
 
