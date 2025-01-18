@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="watermarklab",
-    version="0.0.1",
+    version="0.0.4",
     author="chenoly",
     author_email="chenoly@foxmail.com",
     description="A comprehensive toolkit for digital watermarking research and development.",

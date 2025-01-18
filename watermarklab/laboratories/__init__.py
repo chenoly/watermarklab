@@ -8,10 +8,11 @@ from PIL import Image
 from tqdm import tqdm
 from typing import List, Tuple
 from watermarklab.metrics import *
-from watermarklab.basemodel import *
-from watermarklab.noiselayers.testdistortions import *
+from watermarklab.utils.basemodel import *
 
 __all__ = ['WLab']
+
+from watermarklab.utils.data import DataLoader, DecodeDataLoader
 
 
 class WLab:
@@ -21,7 +22,7 @@ class WLab:
     """
 
     def __init__(self, save_path: str,
-                 noise_models: List[NoiseModelWithFactors] = None,
+                 noise_models: List[NoiseModelWithFactors],
                  vqmetrics=None,
                  robustnessmetrics=None,
                  num_iterations: int = 10):
@@ -40,7 +41,7 @@ class WLab:
             robustnessmetrics = []
         self.save_path = save_path
         self.num_iterations = num_iterations
-        self.noise_models = noise_models if noise_models else self.default_noise_models()
+        self.noise_models = noise_models
         if psnr not in vqmetrics:
             vqmetrics.append(psnr)
         if ssim not in vqmetrics:
@@ -52,37 +53,7 @@ class WLab:
             robustnessmetrics.append(extract_accuracy)
         self.robustnessmetrics = robustnessmetrics
 
-    def default_noise_models(self) -> List[NoiseModelWithFactors]:
-        """
-        Returns a list of default noise models with their factors. These models are commonly used
-        in watermarking experiments to test the robustness of the watermarking algorithms.
-
-        :return: List of NoiseModelWithFactors objects.
-        """
-        return [
-            NoiseModelWithFactors(noisemodel=Jpeg(), noisename="Jpeg Compression", factors=[10, 30, 50, 70, 90],
-                                  factorsymbol="$Q_f$"),
-            NoiseModelWithFactors(noisemodel=Jpeg2000(), noisename="Jpeg2000 Compression",
-                                  factors=[10, 30, 50, 70, 90], factorsymbol="$Q_f$"),
-            NoiseModelWithFactors(noisemodel=SaltPepperNoise(), noisename="Salt&Pepper Noise",
-                                  factors=[0.1, 0.15, 0.2, 0.25, 0.3], factorsymbol="$p$"),
-            NoiseModelWithFactors(noisemodel=GaussianNoise(), noisename="Gaussian Noise",
-                                  factors=[20, 25., 30., 35., 40.], factorsymbol="$\sigma$"),
-            NoiseModelWithFactors(noisemodel=GaussianBlur(), noisename="Gaussian Blur",
-                                  factors=[1.0, 1.5, 2.0, 2.5, 3.0], factorsymbol="$\sigma$"),
-            NoiseModelWithFactors(noisemodel=MedianFilter(), noisename="Median Filter", factors=[3, 5, 7, 9],
-                                  factorsymbol="$w$"),
-            NoiseModelWithFactors(noisemodel=MeanFilter(), noisename="Mean Filter", factors=[3, 5, 7, 9],
-                                  factorsymbol="$w$"),
-            NoiseModelWithFactors(noisemodel=Dropout(), noisename="Dropout", factors=[0.1, 0.2, 0.3, 0.4, 0.5],
-                                  factorsymbol="$p$"),
-            NoiseModelWithFactors(noisemodel=Resize(), noisename="Resize", factors=[0.2, 0.4, 0.6, 0.8],
-                                  factorsymbol="$r$"),
-            NoiseModelWithFactors(noisemodel=Rotate(), noisename="Rotate", factors=[30, 60, 90, 120, 150, 180],
-                                  factorsymbol=r"$\theta$")
-        ]
-
-    def _encode(self, watermark_model: BaseWatermarkModel, dataset: BaseLoader):
+    def _encode(self, watermark_model: BaseWatermarkModel, dataloader: DataLoader):
         """
         Encodes the watermark into the cover images and saves the results. This method is responsible
         for embedding the secret bits into the cover images and saving the stego images, residuals,
@@ -95,21 +66,22 @@ class WLab:
         os.makedirs(now_model_save_path, exist_ok=True)
 
         # Use tqdm to show progress during encoding
-        tar = tqdm(enumerate(dataset), desc=f"Model {watermark_model.modelname} Encoding", total=len(dataset))
-        for index, (cover, secret, img_index, iter_index) in tar:
-            tar.set_description(desc=f"Model {watermark_model.modelname} Encoding - Image {img_index + 1}, Iter {iter_index + 1}")
-            save_iter_path = os.path.join(now_model_save_path, f"image_{img_index + 1}", f"iter_{iter_index + 1}")
-            os.makedirs(save_iter_path, exist_ok=True)
-            stego = watermark_model.embed(cover, secret).stego_img
-            residual = np.abs(cover - stego)
-            residual_normal = ((residual - np.min(residual)) / (np.max(residual) - np.min(residual))) * 255.
-            Image.fromarray(cover.astype(np.uint8)).save(os.path.join(save_iter_path, f"cover.png"))
-            Image.fromarray(stego.astype(np.uint8)).save(os.path.join(save_iter_path, f"stego.png"))
-            Image.fromarray(residual_normal.astype(np.uint8)).save(os.path.join(save_iter_path, f"residual.png"))
-            secret2list, watermark_visual = self._reshape_secret(secret)
-            Image.fromarray(watermark_visual.astype(np.uint8)).save(os.path.join(save_iter_path, f"secret.bmp"))
-            with open(os.path.join(save_iter_path, f"secret.json"), 'w') as f:
-                json.dump(secret2list, f)
+        tar = tqdm(enumerate(dataloader), desc=f"Model {watermark_model.modelname} Encoding", total=len(dataloader))
+        for index, (cover_list, secret_list, img_indexes, iter_indexes) in tar:
+            tar.set_description(desc=f"Model {watermark_model.modelname} Encoding - batchsize {index + 1}")
+            stego_list = watermark_model.embed(cover_list, secret_list).stego_img
+            for stego, cover, secret, img_index, iter_index in zip(stego_list, cover_list, secret_list, img_indexes, iter_indexes):
+                save_iter_path = os.path.join(now_model_save_path, f"image_{img_index + 1}", f"iter_{iter_index + 1}")
+                os.makedirs(save_iter_path, exist_ok=True)
+                residual = np.abs(cover - stego)
+                residual_normal = ((residual - np.min(residual)) / (np.max(residual) - np.min(residual))) * 255.
+                Image.fromarray(cover.astype(np.uint8)).save(os.path.join(save_iter_path, f"cover.png"))
+                Image.fromarray(stego.astype(np.uint8)).save(os.path.join(save_iter_path, f"stego.png"))
+                Image.fromarray(residual_normal.astype(np.uint8)).save(os.path.join(save_iter_path, f"residual.png"))
+                secret2list, watermark_visual = self._reshape_secret(secret)
+                Image.fromarray(watermark_visual.astype(np.uint8)).save(os.path.join(save_iter_path, f"secret.bmp"))
+                with open(os.path.join(save_iter_path, f"secret.json"), 'w') as f:
+                    json.dump(secret2list, f)
 
     def _addnoise(self, watermark_model: BaseWatermarkModel,
                   cover_stego_paths_pair: Tuple[List[List[str]], List[List[str]]]):
@@ -144,7 +116,8 @@ class WLab:
                 save_dir = os.path.join(lossy_save_path, noise_type, str(factor))
                 os.makedirs(save_dir, exist_ok=True)
                 total_len = len(cover_stego_paths_pair[1])
-                tar = tqdm(enumerate(cover_stego_paths_pair[1]), desc=f"Model {watermark_model.modelname} Applying Noise Models", total=total_len)
+                tar = tqdm(enumerate(cover_stego_paths_pair[1]),
+                           desc=f"Model {watermark_model.modelname} Applying Noise Models", total=total_len)
                 for img_index, stego_img_iter_paths in tar:
                     img_save_dir = os.path.join(save_dir, f"image_{img_index + 1}")
                     os.makedirs(img_save_dir, exist_ok=True)
@@ -165,9 +138,10 @@ class WLab:
                         with open(os.path.join(iter_save_dir, "info.json"), 'w') as f:
                             json.dump(info, f, indent=4)
 
-                        tar.set_description(desc=f"Model {watermark_model.modelname} Applying Noise Model ({noise_type}), factor ({factor})")
+                        tar.set_description(
+                            desc=f"Model {watermark_model.modelname} Applying Noise Model ({noise_type}), factor ({factor})")
 
-    def _decode(self, watermark_model: BaseWatermarkModel, noise_img_path: str):
+    def _decode(self, watermark_model: BaseWatermarkModel, noise_img_path: str, batch_size: int):
         """
         Decodes the watermark from the noised images and saves the results. This method is responsible
         for extracting the secret bits from the noised stego images and evaluating the accuracy of the extraction.
@@ -175,36 +149,38 @@ class WLab:
         :param watermark_model: The watermarking model used.
         :param noise_img_path: Path to the directory containing noised images.
         """
-        noised_img_paths = glob.glob(os.path.join(noise_img_path, '**', '*.png'), recursive=True)
+        noised_img_paths = glob.glob(os.path.join(noise_img_path, '**', 'noised.png'), recursive=True)
+        ddataloader = DecodeDataLoader(noised_img_paths, batch_size)
         decoding_results = []
 
         # Use tqdm to show progress during decoding
-        tar = tqdm(noised_img_paths, desc=f"Model {watermark_model.modelname} Decoding")
-        for noised_img_path in tar:
-            tar.set_description(desc=f"Model {watermark_model.modelname} Decoding - ({noised_img_path})")
-            stego_img = np.float32(Image.open(noised_img_path))
-            result = watermark_model.extract(stego_img)
-            secret4json, secret4bmp = self._reshape_secret(result.ext_bits)
-            image_dir = os.path.dirname(noised_img_path)
-            ext_secret_bmp_path = os.path.join(image_dir, "ext_secret.bmp")
-            Image.fromarray(secret4bmp.astype(np.uint8)).save(ext_secret_bmp_path)
-            noise_info_path = os.path.join(image_dir, "info.json")
-            if os.path.exists(noise_info_path):
-                with open(noise_info_path, 'r') as f:
-                    noise_info = json.load(f)
-                noise_info["ext_secret"] = secret4json
-                with open(noise_info_path, 'w') as f:
-                    json.dump(noise_info, f, indent=4)
-            decoding_results.append({
-                "image_path": noised_img_path,
-                "ext_secret": secret4json,
-                "noise_info": noise_info if os.path.exists(noise_info_path) else None
-            })
+        tar = tqdm(ddataloader, desc=f"Model {watermark_model.modelname} Decoding", total=len(ddataloader))
+        for noised_stego_list, noised_stego_path_list in tar:
+            ext_bits_list = watermark_model.extract(noised_stego_list).ext_bits
+            for ext_bits, noised_stego_path in zip(ext_bits_list, noised_stego_path_list):
+                tar.set_description(desc=f"Model {watermark_model.modelname} Decoding - ({noised_stego_path})")
+                secret4json, secret4bmp = self._reshape_secret(ext_bits)
+                image_dir = os.path.dirname(noised_stego_path)
+                ext_secret_bmp_path = os.path.join(image_dir, "ext_secret.bmp")
+                Image.fromarray(secret4bmp.astype(np.uint8)).save(ext_secret_bmp_path)
+                noise_info_path = os.path.join(image_dir, "info.json")
+                if os.path.exists(noise_info_path):
+                    with open(noise_info_path, 'r') as f:
+                        noise_info = json.load(f)
+                    noise_info["ext_secret"] = secret4json
+                    with open(noise_info_path, 'w') as f:
+                        json.dump(noise_info, f, indent=4)
+                decoding_results.append({
+                    "image_path": noised_stego_path,
+                    "ext_secret": secret4json,
+                    "noise_info": noise_info if os.path.exists(noise_info_path) else None
+                })
+
         results_path = os.path.join(noise_img_path, "decoding_results.json")
         with open(results_path, 'w') as f:
             json.dump(decoding_results, f, indent=4)
 
-    def _perform_experiment(self, watermark_model: BaseWatermarkModel, dataset: BaseLoader, mode: str = "default"):
+    def _perform_experiment(self, watermark_model: BaseWatermarkModel, dataloader: DataLoader, mode: str = "default"):
         """
         Performs the entire watermarking experiment, including encoding, adding noise, and decoding.
         The specific steps executed depend on the value of the `mode` parameter.
@@ -219,30 +195,30 @@ class WLab:
         """
         # Step 1: Perform encoding if mode is "default" or "encode"
         if mode in ["default", "encode"]:
-            self._encode(watermark_model, dataset)
+            self._encode(watermark_model, dataloader)
 
         # Retrieve paths for stego and cover images
         img_pair_paths = self._get_img_paths(
             os.path.join(self.save_path, f"{watermark_model.modelname}/images"))
 
         # Step 2: Add noise if mode is "default" or "addnoise"
-        if mode in ["default", "addnoise"]:
+        if mode in ["default", "encode", "addnoise"]:
             self._addnoise(watermark_model, img_pair_paths)
 
         # Define the path for noise-affected images
         noise_img_path = os.path.join(self.save_path, f"{watermark_model.modelname}/noise")
 
         # Step 3: Perform decoding if mode is "default" or "decode"
-        if mode in ["default", "decode"]:
-            self._decode(watermark_model, noise_img_path)
+        if mode in ["default", "encode", "addnoise", "decode"]:
+            self._decode(watermark_model, noise_img_path, dataloader.batch_size)
 
-    def test(self, watermark_model: BaseWatermarkModel, dataset: BaseLoader, mode: str = "default") -> dict:
+    def test(self, watermark_model: BaseWatermarkModel, dataloader: DataLoader, mode: str = "default") -> dict:
         """
         Runs the entire watermarking experiment, including encoding, adding noise, decoding, and testing.
         The specific steps executed depend on the value of the `mode` parameter.
 
         :param watermark_model: The watermarking model to test.
-        :param dataset: The dataset containing cover images and secret bits.
+        :param dataloader: The dataset containing cover images and secret bits.
         :param mode: Determines which steps of the experiment to perform. Possible values:
                     - "default": Perform all steps (encode, add noise, decode, and test).
                     - "encode": Perform only the encoding step and subsequent steps.
@@ -253,7 +229,7 @@ class WLab:
         """
         # Perform the experiment steps if mode is not "test"
         if mode != "test":
-            self._perform_experiment(watermark_model, dataset, mode)
+            self._perform_experiment(watermark_model, dataloader, mode)
 
         # Retrieve paths for stego and cover images
         img_pair_paths = self._get_img_paths(
@@ -300,14 +276,14 @@ class WLab:
         # Return the combined results
         return combine_result
 
-    def test_multiple(self, watermark_models: List[BaseWatermarkModel], datasets: List[BaseLoader],
+    def test_multiple(self, watermark_models: List[BaseWatermarkModel], dataloaders: List[DataLoader],
                       mode: str = "default") -> List[dict]:
         """
         Multi-threaded processing to run the `test` method for each combination of `watermark_model` and `dataset`.
         The results are returned in the same order as the input lists.
 
         :param watermark_models: A list of watermark models to test. The length must be at least 2.
-        :param datasets: A list of datasets corresponding to the watermark models.
+        :param dataloaders: A list of datasets corresponding to the watermark models.
         :param mode: Determines which steps of the experiment to perform. Possible values:
                     - "default": Perform all steps (encode, add noise, decode, and test).
                     - "encode": Perform only the encoding step and subsequent steps.
@@ -324,7 +300,7 @@ class WLab:
             raise ValueError("The length of `watermark_models` must be at least 2.")
 
         # Ensure that the lengths of `watermark_models` and `datasets` are the same.
-        if len(watermark_models) != len(datasets):
+        if len(watermark_models) != len(dataloaders):
             raise ValueError("The lengths of `watermark_models` and `datasets` must be the same.")
 
         # Step 2: Initialize a list to store results
@@ -332,7 +308,7 @@ class WLab:
         combine_results = [None] * len(watermark_models)
 
         # Step 3: Define a thread function to run the `test` method for a single combination
-        def run_test(index: int, watermark_model: BaseWatermarkModel, dataset: BaseLoader):
+        def run_test(index: int, watermark_model: BaseWatermarkModel, dataloader: DataLoader):
             """
             Internal function to run the `test` method for a single combination of
             `watermark_model` and `dataset`. The result is stored in the `combine_results`
@@ -340,11 +316,11 @@ class WLab:
 
             :param index: The index of the current task, used to store the result in the correct position.
             :param watermark_model: The watermark model to test.
-            :param dataset: The dataset to use for testing.
+            :param dataloaders: The dataset to use for testing.
             """
             try:
                 # Call the `test` method and store the result in the `combine_results` list.
-                combine_results[index] = self.test(watermark_model, dataset, mode)
+                combine_results[index] = self.test(watermark_model, dataloader, mode)
             except Exception as e:
                 # If an error occurs during the execution of `test`, log the error and store
                 # an error message in the result list.
@@ -353,9 +329,9 @@ class WLab:
 
         # Step 4: Create and start threads for each combination of `watermark_model` and `dataset`
         threads = []  # List to hold all threads
-        for i, (watermark_model, dataset) in enumerate(zip(watermark_models, datasets)):
+        for i, (watermark_model, dataloader) in enumerate(zip(watermark_models, dataloaders)):
             # Create a new thread for each combination
-            thread = threading.Thread(target=run_test, args=(i, watermark_model, dataset))
+            thread = threading.Thread(target=run_test, args=(i, watermark_model, dataloader))
 
             # Add the thread to the list of threads
             threads.append(thread)
@@ -370,7 +346,6 @@ class WLab:
 
         # Step 6: Return the list of combined results
         return combine_results
-
 
     def _testrobustness(self, watermark_model: BaseWatermarkModel,
                         cover_stego_paths_pair: Tuple[List[List[str]], List[List[str]]], noise_info: List[dict]):

@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from kornia.filters import MedianBlur
 from torch.nn.functional import conv2d
 import torchvision.transforms as transforms
-from watermarklab.basemodel import BaseDiffNoiseModel
+from watermarklab.utils.basemodel import BaseDiffNoiseModel
 
 __all__ = ["Identity", "GaussianBlur", "MedianFilter",
            "GaussianNoise", "Jpeg", "SaltPepperNoise",

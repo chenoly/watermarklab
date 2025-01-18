@@ -2,7 +2,7 @@ import cv2
 import random
 import numpy as np
 from numpy import ndarray
-from watermarklab.basemodel import BaseTestNoiseModel
+from watermarklab.utils.basemodel import BaseTestNoiseModel
 
 __all__ = ["GaussianBlur", "Identity",
            "GaussianNoise", "Jpeg", "SaltPepperNoise",
@@ -19,14 +19,11 @@ class Identity(BaseTestNoiseModel):
 
 
 class GaussianBlur(BaseTestNoiseModel):
-    def __init__(self, kernel_size: int = 7):
+    def __init__(self):
         """
-        Initializes the GaussianBlur class with the specified kernel size.
-
-        Parameters:
-        - kernel_size: int - Size of the kernel for the Gaussian blur (must be odd).
+        Initializes the GaussianBlur class.
         """
-        self.kernel_size = kernel_size
+        pass
 
     def test(self, stego_img: ndarray, cover_img: ndarray = None, sigma: float = 1.) -> ndarray:
         """
@@ -40,9 +37,31 @@ class GaussianBlur(BaseTestNoiseModel):
         Returns:
         - result_img: np.ndarray - The blurred image after applying Gaussian blur.
         """
+        # Calculate kernel size based on sigma
+        kernel_size = self._calculate_kernel_size(sigma)
 
-        noised_img = cv2.GaussianBlur(stego_img, (self.kernel_size, self.kernel_size), sigma)
+        # Apply Gaussian blur
+        noised_img = cv2.GaussianBlur(stego_img, (kernel_size, kernel_size), sigma)
         return noised_img
+
+    def _calculate_kernel_size(self, sigma: float) -> int:
+        """
+        Calculate the kernel size based on the standard deviation (sigma).
+
+        The kernel size is typically chosen as 6 * sigma + 1 to ensure that the Gaussian
+        kernel covers most of the distribution.
+
+        Parameters:
+        - sigma: float - The standard deviation of the Gaussian kernel.
+
+        Returns:
+        - int: The calculated kernel size (odd).
+        """
+        kernel_size = int(6 * sigma + 1)
+        # Ensure kernel size is odd
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+        return kernel_size
 
 
 class MedianFilter(BaseTestNoiseModel):
@@ -110,7 +129,7 @@ class Cropout(BaseTestNoiseModel):
         self.mode = mode
         self.constant = constant
 
-    def random_rectangle_mask(self, img: ndarray, remain_ratio) -> ndarray:
+    def _random_rectangle_mask(self, img: ndarray, remain_ratio) -> ndarray:
         """
         Generates a random rectangular mask for the Cropout operation.
 
@@ -148,7 +167,7 @@ class Cropout(BaseTestNoiseModel):
                      the cropped-out regions either replaced by the cover image or a constant.
         """
         # Generate a random rectangular mask based on the remain_ratio
-        crop_out_mask = self.random_rectangle_mask(stego_img, remain_ratio)
+        crop_out_mask = self._random_rectangle_mask(stego_img, remain_ratio)
 
         if self.mode == "cover_replace":
             # Replace the masked regions with the cover image
@@ -209,7 +228,7 @@ class GaussianNoise(BaseTestNoiseModel):
             np.ndarray: The noised image.
         """
         # Generate Gaussian noise with the same shape as the input image
-        noise = np.random.normal(self.mu, std, stego_img.shape)
+        noise = np.random.normal(self.mu, std, stego_img.shape) * 255.
 
         # Add noise to the input image
         noised_img = stego_img + noise
