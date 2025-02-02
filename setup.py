@@ -5,13 +5,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="watermarklab",
-    version="0.0.4",
+    version="0.0.11",
     author="chenoly",
     author_email="chenoly@foxmail.com",
     description="A comprehensive toolkit for digital watermarking research and development.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/chenoly/watermarklab",  # Replace with your actual GitHub repository URL
+    url="https://github.com/chenoly/watermarklab",
     packages=setuptools.find_packages(),
     install_requires=[
         "numpy>=1.21.0",
@@ -20,7 +20,7 @@ setuptools.setup(
         "matplotlib>=3.4.0",
         "kornia>=0.6.0",
         "tqdm>=4.62.0",
-        "opencv-python>=4.5.0",  # Add OpenCV as a dependency
+        "opencv-python>=4.5.0",
     ],
     python_requires=">=3.7",
     classifiers=[
@@ -42,8 +42,8 @@ setuptools.setup(
         "robustness testing",
     ],
     project_urls={
-        "Bug Reports": "https://github.com/chenoly/watermarklab/issues",  # Replace with your issues URL
-        "Source": "https://github.com/chenoly/watermarklab",  # Replace with your repository URL
-        "Documentation": "https://watermarklab.readthedocs.io",  # Optional: Add a link to your documentation
+        "Bug Reports": "https://github.com/chenoly/watermarklab/issues",
+        "Source": "https://github.com/chenoly/watermarklab",
+        "Documentation": "https://watermarklab.readthedocs.io",
     },
 )

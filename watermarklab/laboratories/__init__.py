@@ -6,13 +6,12 @@ import threading
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
-from typing import List, Tuple
 from watermarklab.metrics import *
 from watermarklab.utils.basemodel import *
+from typing import List, Tuple, Optional, Dict
+from watermarklab.utils.data import DataLoader, DecodeDataLoader
 
 __all__ = ['WLab']
-
-from watermarklab.utils.data import DataLoader, DecodeDataLoader
 
 
 class WLab:
@@ -70,11 +69,12 @@ class WLab:
         for index, (cover_list, secret_list, img_indexes, iter_indexes) in tar:
             tar.set_description(desc=f"Model {watermark_model.modelname} Encoding - batchsize {index + 1}")
             stego_list = watermark_model.embed(cover_list, secret_list).stego_img
-            for stego, cover, secret, img_index, iter_index in zip(stego_list, cover_list, secret_list, img_indexes, iter_indexes):
+            for stego, cover, secret, img_index, iter_index in zip(stego_list, cover_list, secret_list, img_indexes,
+                                                                   iter_indexes):
                 save_iter_path = os.path.join(now_model_save_path, f"image_{img_index + 1}", f"iter_{iter_index + 1}")
                 os.makedirs(save_iter_path, exist_ok=True)
                 residual = np.abs(cover - stego)
-                residual_normal = ((residual - np.min(residual)) / (np.max(residual) - np.min(residual))) * 255.
+                residual_normal = ((residual - np.min(residual)) / (np.max(residual) - np.min(residual) + 1e-8)) * 255.
                 Image.fromarray(cover.astype(np.uint8)).save(os.path.join(save_iter_path, f"cover.png"))
                 Image.fromarray(stego.astype(np.uint8)).save(os.path.join(save_iter_path, f"stego.png"))
                 Image.fromarray(residual_normal.astype(np.uint8)).save(os.path.join(save_iter_path, f"residual.png"))
@@ -143,39 +143,64 @@ class WLab:
 
     def _decode(self, watermark_model: BaseWatermarkModel, noise_img_path: str, batch_size: int):
         """
-        Decodes the watermark from the noised images and saves the results. This method is responsible
-        for extracting the secret bits from the noised stego images and evaluating the accuracy of the extraction.
+        Decodes the watermark from the noised images and saves the results. Skips directories that have already been decoded.
 
         :param watermark_model: The watermarking model used.
         :param noise_img_path: Path to the directory containing noised images.
+        :param batch_size: Batch size for data loading.
         """
+        # Step 1: Preprocess - exclude already decoded directories
         noised_img_paths = glob.glob(os.path.join(noise_img_path, '**', 'noised.png'), recursive=True)
-        ddataloader = DecodeDataLoader(noised_img_paths, batch_size)
+        valid_img_paths = []
+
+        for noised_img_path in noised_img_paths:
+            image_dir = os.path.dirname(noised_img_path)
+            noise_info_path = os.path.join(image_dir, "info.json")
+
+            # Check if the directory has already been decoded
+            if os.path.exists(noise_info_path):
+                with open(noise_info_path, 'r') as f:
+                    noise_info = json.load(f)
+                if "ext_secret" in noise_info:  # Skip if already decoded
+                    continue
+
+            valid_img_paths.append(noised_img_path)
+
+        # Step 2: Decode only valid directories
+        ddataloader = DecodeDataLoader(valid_img_paths, batch_size)
         decoding_results = []
 
         # Use tqdm to show progress during decoding
         tar = tqdm(ddataloader, desc=f"Model {watermark_model.modelname} Decoding", total=len(ddataloader))
         for noised_stego_list, noised_stego_path_list in tar:
-            ext_bits_list = watermark_model.extract(noised_stego_list).ext_bits
-            for ext_bits, noised_stego_path in zip(ext_bits_list, noised_stego_path_list):
-                tar.set_description(desc=f"Model {watermark_model.modelname} Decoding - ({noised_stego_path})")
-                secret4json, secret4bmp = self._reshape_secret(ext_bits)
+            for noised_stego_path in noised_stego_path_list:
                 image_dir = os.path.dirname(noised_stego_path)
-                ext_secret_bmp_path = os.path.join(image_dir, "ext_secret.bmp")
-                Image.fromarray(secret4bmp.astype(np.uint8)).save(ext_secret_bmp_path)
                 noise_info_path = os.path.join(image_dir, "info.json")
-                if os.path.exists(noise_info_path):
-                    with open(noise_info_path, 'r') as f:
-                        noise_info = json.load(f)
-                    noise_info["ext_secret"] = secret4json
-                    with open(noise_info_path, 'w') as f:
-                        json.dump(noise_info, f, indent=4)
-                decoding_results.append({
-                    "image_path": noised_stego_path,
-                    "ext_secret": secret4json,
-                    "noise_info": noise_info if os.path.exists(noise_info_path) else None
-                })
 
+                # Decode the watermark
+                tar.set_description(desc=f"Model {watermark_model.modelname} Decoding - ({noised_stego_path})")
+                ext_bits_list = watermark_model.extract(noised_stego_list).ext_bits
+                for ext_bits in ext_bits_list:
+                    secret4json, secret4bmp = self._reshape_secret(ext_bits)
+                    ext_secret_bmp_path = os.path.join(image_dir, "ext_secret.bmp")
+                    Image.fromarray(secret4bmp.astype(np.uint8)).save(ext_secret_bmp_path)
+
+                    # Update info.json with the extracted secret
+                    if os.path.exists(noise_info_path):
+                        with open(noise_info_path, 'r') as f:
+                            noise_info = json.load(f)
+                        noise_info["ext_secret"] = secret4json
+                        with open(noise_info_path, 'w') as f:
+                            json.dump(noise_info, f, indent=4)
+
+                    # Record decoding results
+                    decoding_results.append({
+                        "image_path": noised_stego_path,
+                        "ext_secret": secret4json,
+                        "noise_info": noise_info if os.path.exists(noise_info_path) else None
+                    })
+
+        # Save all decoding results
         results_path = os.path.join(noise_img_path, "decoding_results.json")
         with open(results_path, 'w') as f:
             json.dump(decoding_results, f, indent=4)
@@ -277,46 +302,54 @@ class WLab:
         return combine_result
 
     def test_multiple(self, watermark_models: List[BaseWatermarkModel], dataloaders: List[DataLoader],
-                      mode: str = "default") -> List[dict]:
+                      modes: Optional[List[str]] = None) -> List[Dict]:
         """
         Multi-threaded processing to run the `test` method for each combination of `watermark_model` and `dataset`.
         The results are returned in the same order as the input lists.
 
-        :param watermark_models: A list of watermark models to test. The length must be at least 2.
-        :param dataloaders: A list of datasets corresponding to the watermark models.
-        :param mode: Determines which steps of the experiment to perform. Possible values:
-                    - "default": Perform all steps (encode, add noise, decode, and test).
-                    - "encode": Perform only the encoding step and subsequent steps.
-                    - "addnoise": Perform only the noise addition step and subsequent steps.
-                    - "decode": Perform only the decoding step.
-                    - "test": Perform only the testing steps (visual quality and robustness tests).
-        :return: A list of combined results, in the same order as the input lists.
-        :raises ValueError: If the lengths of `watermark_models` and `datasets` do not match,
-                           or if the length of `watermark_models` is less than 2.
+        Args:
+            watermark_models (List[BaseWatermarkModel]): A list of watermark models to test. The length must be at least 2.
+            dataloaders (List[DataLoader]): A list of datasets corresponding to the watermark models.
+            modes (Optional[List[str]]): Determines which steps of the experiment to perform. Possible values:
+                - "default": Perform all steps (encode, add noise, decode, and test).
+                - "encode": Perform only the encoding step and subsequent steps.
+                - "addnoise": Perform only the noise addition step and subsequent steps.
+                - "decode": Perform only the decoding step.
+                - "test": Perform only the testing steps (visual quality and robustness tests).
+                If None, defaults to ["default"] for all models.
+
+        Returns:
+            List[Dict]: A list of combined results, in the same order as the input lists.
+
+        Raises:
+            ValueError: If the lengths of `watermark_models` and `datasets` do not match,
+                       or if the length of `watermark_models` is less than 2.
         """
         # Step 1: Validate input parameters
-        # Ensure that the length of `watermark_models` is at least 2.
         if len(watermark_models) < 2:
             raise ValueError("The length of `watermark_models` must be at least 2.")
 
-        # Ensure that the lengths of `watermark_models` and `datasets` are the same.
         if len(watermark_models) != len(dataloaders):
             raise ValueError("The lengths of `watermark_models` and `datasets` must be the same.")
 
+        if modes is None:
+            modes = ["default"] * len(watermark_models)
+
         # Step 2: Initialize a list to store results
-        # Pre-fill the list with `None` to ensure results can be assigned to the correct index.
         combine_results = [None] * len(watermark_models)
 
         # Step 3: Define a thread function to run the `test` method for a single combination
-        def run_test(index: int, watermark_model: BaseWatermarkModel, dataloader: DataLoader):
+        def run_test(index: int, watermark_model: BaseWatermarkModel, dataloader: DataLoader, mode: str):
             """
             Internal function to run the `test` method for a single combination of
             `watermark_model` and `dataset`. The result is stored in the `combine_results`
             list at the specified index.
 
-            :param index: The index of the current task, used to store the result in the correct position.
-            :param watermark_model: The watermark model to test.
-            :param dataloaders: The dataset to use for testing.
+            Args:
+                index (int): The index of the current task, used to store the result in the correct position.
+                watermark_model (BaseWatermarkModel): The watermark model to test.
+                dataloader (DataLoader): The dataset to use for testing.
+                mode (str): The mode to determine which steps of the experiment to perform.
             """
             try:
                 # Call the `test` method and store the result in the `combine_results` list.
@@ -329,9 +362,9 @@ class WLab:
 
         # Step 4: Create and start threads for each combination of `watermark_model` and `dataset`
         threads = []  # List to hold all threads
-        for i, (watermark_model, dataloader) in enumerate(zip(watermark_models, dataloaders)):
+        for i, (watermark_model, dataloader, mode) in enumerate(zip(watermark_models, dataloaders, modes)):
             # Create a new thread for each combination
-            thread = threading.Thread(target=run_test, args=(i, watermark_model, dataloader))
+            thread = threading.Thread(target=run_test, args=(i, watermark_model, dataloader, mode))
 
             # Add the thread to the list of threads
             threads.append(thread)
@@ -340,7 +373,6 @@ class WLab:
             thread.start()
 
         # Step 5: Wait for all threads to complete
-        # Use the `join` method to ensure the main thread waits until all tasks are finished.
         for thread in threads:
             thread.join()
 

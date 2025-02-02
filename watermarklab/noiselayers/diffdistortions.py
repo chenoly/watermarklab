@@ -679,7 +679,7 @@ class Dropout(BaseDiffNoiseModel):
 
 
 class GaussianNoise(BaseDiffNoiseModel):
-    def __init__(self, mu: float = 0, std: float = 1.5, intensity: float = 0.01, prob: float = 0.8,
+    def __init__(self, mu: float = 0, std: float = 1.5, intensity: float = 1., prob: float = 0.8,
                  max_step: int = 100):
         """
         Initializes the GaussianNoise layer.
@@ -744,7 +744,7 @@ class GaussianNoise(BaseDiffNoiseModel):
         return noised_img.clamp(0, 1.)  # Clamp values to [0, 1]
 
 
-class SaltPepperNoise(BaseDiffNoiseModel):
+class SaltPepperNoise(nn.Module):
     def __init__(self, noise_ratio: float = 0.1, noise_prob: float = 0.5, prob: float = 0.8,
                  max_step: int = 100):
         """
@@ -762,9 +762,9 @@ class SaltPepperNoise(BaseDiffNoiseModel):
         self.prob = max(min(prob, 1.), 0.)  # Clamp overall probability between 0 and 1
         self.max_step = max(max_step, 1)
 
-    def apply_noise(self, img: Tensor, noise_ratio: float) -> Tensor:
+    def apply_noise(self, img: torch.Tensor, noise_ratio: float) -> torch.Tensor:
         """
-        Applies traditional salt and pepper noise to the input image.
+        Applies differentiable salt and pepper noise to the input image.
 
         Args:
             img (Tensor): The input image (C, H, W).
@@ -773,29 +773,34 @@ class SaltPepperNoise(BaseDiffNoiseModel):
         Returns:
             Tensor: The noised image.
         """
-        noised_img = img.clone()  # Avoid modifying the original image
-        num_noisy_pixels = int(noise_ratio * img[0].numel())  # Number of pixels to noised
+        batch_size, channels, height, width = img.shape
+        num_noisy_pixels = int(noise_ratio * height * width)  # Number of pixels to noised
 
         # Generate random indices for the positions of the noisy pixels
-        indices = torch.randperm(img[0].numel(), device=img.device)[:num_noisy_pixels]
+        indices = torch.randperm(height * width, device=img.device)[:num_noisy_pixels]
 
         # Convert 1D indices to 2D positions (height, width)
-        noisy_positions = torch.unravel_index(indices, img.shape[-2:])
+        noisy_positions = torch.unravel_index(indices, (height, width))
 
         # Generate random values to decide between "salt" (1) or "pepper" (0)
         random_noise = torch.rand(num_noisy_pixels, device=img.device)
-        salt_pepper_values = torch.where(random_noise < self.noise_prob, torch.ones_like(random_noise),
+        salt_pepper_values = torch.where(random_noise < self.noise_prob,
+                                         torch.ones_like(random_noise),
                                          torch.zeros_like(random_noise))
 
-        # Apply the same noise to all channels
-        for c in range(img.shape[0]):  # Iterate over channels
-            noised_img[c, noisy_positions[0], noisy_positions[1]] = salt_pepper_values
+        # Create a soft mask for differentiable noise
+        soft_mask = torch.ones_like(img)
+        for c in range(channels):  # Apply the same noise to all channels
+            soft_mask[:, c, noisy_positions[0], noisy_positions[1]] = salt_pepper_values.unsqueeze(0)
+
+        # Apply the soft mask to the image
+        noised_img = img * soft_mask
 
         return noised_img
 
-    def forward(self, marked_img: Tensor, cover_img: Tensor = None, now_step: int = 0) -> Tensor:
+    def forward(self, marked_img: torch.Tensor, cover_img: torch.Tensor = None, now_step: int = 0) -> torch.Tensor:
         """
-        Applies salt and pepper noise to the input image during training.
+        Applies differentiable salt and pepper noise to the input image during training.
 
         Args:
             marked_img (Tensor): The input image (C, H, W).
@@ -814,9 +819,9 @@ class SaltPepperNoise(BaseDiffNoiseModel):
 
         return noised_img.clamp(0, 1)  # Clamp values to [0, 1]
 
-    def test(self, marked_img: Tensor, cover_img: Tensor = None, noise_ratio: float = 0.1) -> Tensor:
+    def test(self, marked_img: torch.Tensor, cover_img: torch.Tensor = None, noise_ratio: float = 0.1) -> torch.Tensor:
         """
-        Applies salt and pepper noise to the input image during testing.
+        Applies differentiable salt and pepper noise to the input image during testing.
 
         Args:
             marked_img (Tensor): The input image (C, H, W).
@@ -829,7 +834,6 @@ class SaltPepperNoise(BaseDiffNoiseModel):
         noised_img = marked_img.clone()
         noised_img = self.apply_noise(noised_img, noise_ratio)
         return noised_img.clamp(0, 1)
-
 
 
 class Resize(BaseDiffNoiseModel):

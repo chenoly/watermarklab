@@ -23,7 +23,7 @@ def plot_robustness(combined_results: List[Dict], save_path: str, metric="ber", 
     :param combined_results: List of dictionaries containing robustness results for each model.
     :param save_path: Path to save the generated plots.
     :param figsize: Size of the figure (width, height).
-    :param style: Matplotlib style to use (e.g., 'default', 'ggplot', 'seaborn').
+    :param style: Matplotlib style to use (e.g., 'default', 'ggplot').
     :param legend: Legend placement option. Options include:
                    - 'auto': Automatically place the legend.
                    - 'best': Place the legend in the best location.
@@ -300,7 +300,7 @@ def boxplot_visualquality(visualqualityresults: List[Dict], save_path: str, figs
     :param visualqualityresults: List of dictionaries containing visual quality results for each model.
     :param save_path: Path to save the generated plots.
     :param figsize: Size of the figure (width, height).
-    :param style: Matplotlib style to use (e.g., 'default', 'ggplot', 'seaborn').
+    :param style: Matplotlib style to use (e.g., 'default', 'ggplot').
     :param legend: Legend placement option. Options include:
                    - 'auto': Automatically place the legend.
                    - 'best': Place the legend in the best location.
@@ -448,7 +448,7 @@ def table_visualquality(combined_results: List[Dict], save_path: str):
 
 # -------------------- Performance Visualization Functions --------------------
 
-def radar_performance(combined_results: List[Dict], save_path: str, figsize=(7, 7), style='seaborn', legend='best'):
+def radar_performance(combined_results: List[Dict], save_path: str, figsize=(6, 4), style='default', legend='best'):
     """
     Plot overall performance (mean ber, mean psnr, bit_length) using radar charts.
     Each radar chart represents a watermarking method, and the axes represent:
@@ -459,7 +459,7 @@ def radar_performance(combined_results: List[Dict], save_path: str, figsize=(7, 
     :param combined_results: List of dictionaries containing performance metrics for each model.
     :param save_path: Path to save the generated radar charts.
     :param figsize: Size of the figure (width, height).
-    :param style: Matplotlib style to use (e.g., 'default', 'ggplot', 'seaborn').
+    :param style: Matplotlib style to use (e.g., 'default', 'ggplot').
     :param legend: Legend placement option. Options include:
                    - 'auto': Automatically place the legend.
                    - 'best': Place the legend in the best location.
@@ -501,7 +501,7 @@ def radar_performance(combined_results: List[Dict], save_path: str, figsize=(7, 
     # Collect all metrics for normalization
     all_ber = []
     all_psnr = []
-    all_bit_length = []
+    all_capacity = []
     for result in combined_results:
         robustnessresult = result["robustnessresult"]
         visualqualityresult = result["visualqualityresult"]
@@ -518,12 +518,12 @@ def radar_performance(combined_results: List[Dict], save_path: str, figsize=(7, 
         all_psnr.append(np.mean(visualqualityresult["psnr"]))
 
         # Get bit length
-        all_bit_length.append(result["bit_length"])
+        all_capacity.append(result["bit_length"] / result["imagesize"])
 
     # Define min and max values for normalization
     min_ber, max_ber = min(all_ber), max(all_ber)
     min_psnr, max_psnr = min(all_psnr), max(all_psnr)
-    min_bit_length, max_bit_length = min(all_bit_length), max(all_bit_length)
+    min_capacity, max_capacity = min(all_capacity), max(all_capacity)
 
     # Define a color palette for models
     colors = plt.cm.viridis(np.linspace(0, 1, len(combined_results)))
@@ -550,9 +550,9 @@ def radar_performance(combined_results: List[Dict], save_path: str, figsize=(7, 
         capacity = result["bit_length"] / imagesize
 
         # Normalize metrics to scores (2 to 10)
-        ber_score = normalize_to_score(mean_ber, min_ber, max_ber)  # Lower BER is better
+        ber_score = normalize_to_score(mean_ber, min_ber, max_ber, True)  # Lower BER is better
         psnr_score = normalize_to_score(mean_psnr, min_psnr, max_psnr)  # Higher PSNR is better
-        bit_length_score = normalize_to_score(capacity, min_bit_length, max_bit_length)  # Higher bit length is better
+        bit_length_score = normalize_to_score(capacity, min_capacity, max_capacity)  # Higher bit length is better
 
         # Combine scores for the radar chart
         values = [ber_score, psnr_score, bit_length_score]
