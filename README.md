@@ -29,7 +29,7 @@ source your_venv_name/bin/activate # Mac/Linux
 
 ### 4. Start the Server
 ```bash
-python server.py
+python -m http.server 8080
 ```
 
 ### 5. Access Interactive Visualization Interface
