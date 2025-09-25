@@ -39,4 +39,3 @@ http://localhost:8080
 ```
 
 Now you can interact with the watermark detection and analysis tools through the interactive web interface.
-```
