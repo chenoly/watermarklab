@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WatermarkLab - Performance Analysis</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/themes/light-blue.css">
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js" charset="utf-8"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            overflow-x: hidden;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .nav-item {
+            margin: 0;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 15px 20px;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: #ffd700;
+            color: white;
+        }
+
+        .nav-link .icon {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* 二级导航样式 */
+        .nav-submenu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .nav-item.expanded .nav-submenu {
+            max-height: 500px; /* 足够大的值来显示所有子项 */
+        }
+
+        .nav-subitem {
+            margin: 0;
+        }
+
+        .nav-sublink {
+            display: block;
+            padding: 10px 20px 10px 50px; /* 增加左边距形成缩进效果 */
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-sublink:hover,
+        .nav-sublink.active {
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: #ffd700;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .nav-expand-icon {
+            float: right;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item.expanded .nav-expand-icon {
+            transform: rotate(90deg);
+        }
+
+        /* 主内容区域 */
+        .main-content {
+            margin-left: 250px;
+            padding: 0;
+            min-height: 100vh;
+            background: #f8f9fa;
+            padding-top: 20px; /* 为固定header预留空间 */
+        }
+
+        .section {
+            min-height: 100vh;
+            padding: 40px;
+            background: white;
+            margin-bottom: 2px;
+            position: relative;
+        }
+
+        .section:nth-child(even) {
+            background: #fafbfc;
+        }
+
+        .section-title {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            transition: box-shadow 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .section-title:hover {
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        .subsection {
+            margin-bottom: 60px;
+        }
+
+        .subsection-title {
+            font-size: 1.8rem;
+            color: #34495e;
+            margin-bottom: 30px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(116, 185, 255, 0.25);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .subsection-title::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        /* 小节介绍容器样式 */
+        .section-intro {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #667eea;
+            padding: 20px 25px;
+            margin: 20px 0 30px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-intro h3 {
+            color: #2c3e50;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .section-intro p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .section-intro .formula {
+            background: #fff;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            margin: 10px 0;
+            color: #2c3e50;
+        }
+
+        .section-intro .highlight {
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #1976d2;
+        }
+
+        /* Hero View 样式 */
+        .hero-view {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-chart {
+            width: 100%;
+            height: 80vh;
+        }
+
+        /* 网格布局 */
+        .charts-grid {
+            display: grid;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .charts-grid-5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .charts-grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        
+        .charts-grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+                    
+        .charts-grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .chart-wrapper {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chart-wrapper:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 600px; /* 恢复原来的通用高度 */
+            border-radius: 8px;
+            overflow: visible;
+            margin-bottom: 20px;
+        }
+
+        /* 专门为Model Robustness Curves设置更高的容器 */
+        #model-robustness-curves .chart-container {
+            height: 1200px;
+        }
+
+        /* 专门为Robustness Scores设置更合适的容器高度 */
+        #robustness-scores-grid .chart-container {
+            height: 550px; /* 增加高度，从450px到550px */
+        }
+
+        /* 专门为Visual Quality Metrics设置更合适的容器高度 */
+        #quality-metrics-charts .chart-container {
+            height: 680px; /* 增加高度以适配更高的图表，从580px增加到680px */
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        /* 加载状态 */
+        .loading-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .charts-grid-5 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .charts-grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            .charts-grid-5 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 返回按钮 */
+        .back-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+            z-index: 999;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+        }
+
+        /* 移动端菜单切换按钮 */
+        .menu-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 1001;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 移动端菜单切换按钮 -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <span>☰</span>
+    </button>
+
+    <!-- 左侧导航栏 -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">Performance Analysis</h2>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#robustness-section" class="nav-link active" data-section="robustness-section">
+                    <span class="icon">🛡️</span>
+                    Robustness Evaluation
+                    <span class="nav-expand-icon">▶</span>
+                </a>
+                <ul class="nav-submenu">
+                    <li class="nav-subitem">
+                        <a href="#overall-ranking-section" class="nav-sublink" data-section="overall-ranking-section">
+                            Watermark Ranking
+                        </a>
+                    </li>
+                    <li class="nav-subitem">
+                        <a href="#robustness-scores-section" class="nav-sublink" data-section="robustness-scores-section">
+                            Robustness Scores
+                        </a>
+                    </li>
+                    <li class="nav-subitem">
+                        <a href="#robustness-curves-section" class="nav-sublink" data-section="robustness-curves-section">
+                            Robustness Curves
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a href="#attack-section" class="nav-link" data-section="attack-section">
+                    <span class="icon">⚔️</span>
+                    Attacking Analysis
+                    <span class="nav-expand-icon">▶</span>
+                </a>
+                <ul class="nav-submenu">
+                    <li class="nav-subitem">
+                        <a href="#attack-effectiveness-section" class="nav-sublink" data-section="attack-effectiveness-section">
+                            Attacker Ranking
+                        </a>
+                    </li>
+                    <li class="nav-subitem">
+                        <a href="#model-robustness-curves-section" class="nav-sublink" data-section="model-robustness-curves-section">
+                            Model vs. Attackers
+                        </a>
+                    </li>
+                    <li class="nav-subitem">
+                        <a href="#distortion-visualization-section" class="nav-sublink" data-section="distortion-visualization-section">
+                            Attack Visualization
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a href="#quality-section" class="nav-link" data-section="quality-section">
+                    <span class="icon">🎨</span>
+                    Visual Quality
+                    <span class="nav-expand-icon">▶</span>
+                </a>
+                <ul class="nav-submenu">
+                    <li class="nav-subitem">
+                        <a href="#quality-metrics-section" class="nav-sublink" data-section="quality-metrics-section">
+                            Quality Metrics
+                        </a>
+                    </li>
+                    <li class="nav-subitem">
+                        <a href="#stego-comparison-section" class="nav-sublink" data-section="stego-comparison-section">
+                            Stego Image
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <main class="main-content">
+        <!-- 区域一：鲁棒性评估 -->
+        <section id="robustness-section" class="section">
+            <h1 class="section-title">Robustness Evaluation</h1>
+            
+            <!-- 子部分 1.1：模型总体鲁棒性排名 (Hero View) -->
+            <div class="subsection" id="overall-ranking-section">
+                <h2 class="subsection-title">Overall Model Robustness Ranking</h2>
+                
+                <!-- 小节介绍 -->
+                <div class="section-intro">
+                    <h3>Overall Robustness Ranking Methodology</h3>
+                    <p>The overall robustness ranking is computed using a <span class="highlight">ranking-based scoring system</span> based on Area Under the Curve (AUC) of TPR@N%FPR-PSNR curves across all attack types.</p>
+                    
+                    <h4>AUC Calculation for TPR@N%FPR-PSNR Curves:</h4>
+                    <p>For each model and attack type, we compute the AUC of the TPR@N%FPR vs. normalized PSNR curve:</p>
+                    <p>PSNR<sub>norm</sub> = (PSNR - PSNR<sub>min</sub>) / (PSNR<sub>max</sub> - PSNR<sub>min</sub>)</p>
+                    <p>AUC = ∫<sub>0</sub><sup>1</sup> TPR@N%FPR(PSNR<sub>norm</sub>) d(PSNR<sub>norm</sub>)</p>
+                    
+                    <p>The curve includes baseline points: <span class="highlight">(0, 0)</span> representing no attack quality and <span class="highlight">(1, TPR@N%FPR<sub>NoAttack</sub>)</span> representing clean image performance. This provides a comprehensive measure of robustness across different attack intensities.</p>
+                    
+                    <h4>Ranking-Based Scoring:</h4>
+                    <p>For each attack type, models are ranked by their AUC scores. Points are assigned as:</p>
+                    <p>Points = N - rank + 1, where N = total number of models, rank ∈ [1, N]</p>
+                    
+                    <p>The <span class="highlight">overall score</span> is the sum of ranking points across all attack types. Higher total score indicates better overall robustness performance.</p>
+                </div>
+                
+                <div class="hero-view">
+                    <div id="overall-ranking-hero" class="hero-chart">
+                        <!-- Hero View 排名图表 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 子部分 1.2：各攻击器下的鲁棒性得分 -->
+            <div class="subsection" id="robustness-scores-section">
+                <h2 class="subsection-title">Robustness Scores under Different Attacks</h2>
+                
+                <!-- 小节介绍 -->
+                <div class="section-intro">
+                    <h3>Robustness Scores Methodology</h3>
+                    <p>The robustness scores are computed using <span class="highlight">Area Under the Curve (AUC)</span> of TPR@N%FPR-PSNR curves for each specific attack type, providing a comprehensive measure of model performance across different attack intensities.</p>
+                    
+                    <h4>AUC Calculation Process:</h4>
+                    <p>For each model-attack pair, we extract TPR@N%FPR and PSNR data points through the following steps:</p>
+                    <p>1. Extract TPR@N%FPR values across all attack factors</p>
+                    <p>2. Extract corresponding PSNR values from visual quality data</p>
+                    <p>3. Normalize PSNR: PSNR<sub>norm</sub> = (PSNR - PSNR<sub>min</sub>) / (PSNR<sub>max</sub> - PSNR<sub>min</sub>)</p>
+                    <p>4. Create TPR@N%FPR-PSNR curve with baseline points: (0,0) and (1, TPR@N%FPR<sub>NoAttack</sub>)</p>
+                    <p>5. Calculate AUC = ∫<sub>0</sub><sup>1</sup> TPR@N%FPR(PSNR<sub>norm</sub>) d(PSNR<sub>norm</sub>)</p>
+                    
+                    <p><strong>TPR@N%FPR:</strong> True Positive Rate at N% False Positive Rate, measuring watermark detection accuracy under attack.</p>
+                    <p><strong>Global PSNR Range:</strong> Determined across all models and attacks for consistent normalization. If max PSNR < 60dB, assumes 60dB as "No Attack" reference; otherwise uses actual max + 10dB.</p>
+                    
+                    <h4>Ranking System:</h4>
+                    <p>Models are ranked by AUC scores for each attack type, with higher AUC indicating better robustness (maintaining high TPR@N%FPR across various attack intensities while preserving visual quality).</p>
+                </div>
+                
+                <div id="robustness-scores-grid" class="charts-grid charts-grid-4">
+                    <!-- 每行4个图表的网格布局 -->
+                </div>
+            </div>
+
+            <!-- 子部分 1.3：各攻击器下的鲁棒性曲线 -->
+            <div class="subsection" id="robustness-curves-section">
+                <h2 class="subsection-title">Robustness Curves under Different Attacks</h2>
+                
+                <!-- 小节介绍 -->
+                <div class="section-intro">
+                    <h3>Robustness Curves Analysis</h3>
+                    <p>Robustness curves visualize model performance degradation across <span class="highlight">varying attack intensities</span>, enabling analysis of robustness tolerance and attack vulnerability patterns.</p>
+                    
+                    <h4>Chart Type Selection:</h4>
+                    <p><strong>Multi-factor attacks:</strong> Line plots with markers where X-axis shows attack factors sorted numerically, Y-axis shows performance metrics (TPR@N%FPR, Extract Accuracy), and multiple lines compare different models.</p>
+                    
+                    <p><strong>Single-factor attacks:</strong> Bar charts where X-axis shows model names, Y-axis shows single performance value, with different colors for each model.</p>
+                    
+                    <h4>Factor Processing:</h4>
+                    <p>Attack factors are converted to numeric values and sorted for consistent visualization.</p>
+                    
+                    <h4>Performance Metrics:</h4>
+                    <p><strong>TPR@N%FPR:</strong> True Positive Rate at N% False Positive Rate (range: [0,1])</p>
+                    <p><strong>Extract Accuracy:</strong> Watermark extraction accuracy (range: [0,100%])</p>
+                    
+                    <p>Curves help identify <span class="highlight">attack tolerance thresholds</span> and compare relative robustness across different attack types and intensities.</p>
+                </div>
+                
+                <div id="robustness-curves-grid" class="charts-grid charts-grid-4">
+                    <!-- 每行4个图表的网格布局 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 区域二：攻击效果分析 -->
+        <section id="attack-section" class="section">
+            <h1 class="section-title">Attack Effectiveness Analysis</h1>
+            
+            <!-- 子部分 2.1：攻击器有效性排名 -->
+            <div class="subsection" id="attack-effectiveness-section">
+                <h2 class="subsection-title">Attack Effectiveness Ranking</h2>
+                
+                <!-- 小节介绍 -->
+                <div class="section-intro">
+                    <h3>Attack Effectiveness Ranking Methodology</h3>
+                    <p>Attack effectiveness is measured using the <span class="highlight">AE (Attack Effectiveness) metric</span>, which combines attack impact on watermark detection with visual quality preservation.</p>
+                    
+                    <h4>AE Metric Definition:</h4>
+                    <p>AE = (1 - TPR@N%FPR) × PSNR<sub>normalized</sub></p>
+                    
+                    <p>Where <strong>(1 - TPR@N%FPR)</strong> represents attack impact (higher = more detection degradation), <strong>PSNR<sub>normalized</sub></strong> represents visual quality preservation (higher = better quality), and <strong>PSNR<sub>norm</sub> = (PSNR - PSNR<sub>min</sub>) / (PSNR<sub>max</sub> - PSNR<sub>min</sub>)</strong>.</p>
+                    
+                    <h4>Calculation Process:</h4>
+                    <p><strong>1. Global PSNR Range:</strong> Extract all PSNR values across models/attacks</p>
+                    <p><strong>2. Per-Factor AE:</strong> Compute AE for each (model, attack, factor) combination</p>
+                    <p><strong>3. Attack Average:</strong> Average AE across all models and factors for each attack</p>
+                    <p><strong>4. Ranking:</strong> Sort attacks by average AE (descending = more effective)</p>
+                    
+                    <h4>Interpretation:</h4>
+                    <p><span class="highlight">Higher AE</span> indicates more effective attacks that successfully reduce watermark detectability while maintaining reasonable visual quality. The ranking helps identify which attack types pose the greatest threat to watermark systems.</p>
+                    
+                    <p><strong>Example:</strong> An attack with AE=0.8 significantly degrades detection (low TPR@N%FPR) while preserving high image quality (high PSNR), making it highly effective.</p>
+                </div>
+                
+                <div class="hero-view">
+                    <div id="attack-effectiveness-ranking" class="hero-chart">
+                        <!-- 攻击有效性排名图表 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 子部分 2.2：各模型在不同攻击下的鲁棒性曲线 -->
+            <div class="subsection" id="model-robustness-curves-section">
+                <h2 class="subsection-title">Model Robustness Curves under Different Attacks</h2>
+                
+                <!-- 小节介绍 -->
+                <div class="section-intro">
+                    <h3>Model vs. Attacker Performance Analysis</h3>
+                    <p>Detailed analysis of <span class="highlight">attacker performance curves</span> showing the trade-off between visual quality (PSNR) and robustness degradation for each model under different attack types.</p>
+                    
+                    <h4>Attacker Performance Curve:</h4>
+                    <p>For each model and combination of visual quality and robustness metrics, we generate curves showing how much visual quality attackers sacrifice to achieve robustness degradation.</p>
+                    
+                    <h4>Curve Specification:</h4>
+                    <p><strong>X-axis:</strong> Visual Quality Metric (PSNR, excludes SSIM)</p>
+                    <p><strong>Y-axis:</strong> Robustness Metric (TPR@N%FPR, Extract Accuracy)</p>
+                    <p><strong>Lines:</strong> Different attack types (excludes "No Attacking")</p>
+                    <p><strong>Points:</strong> Different attack factor intensities</p>
+                    
+                    <h4>Analysis Dimensions:</h4>
+                    <p><strong>1. Trade-off Analysis:</strong> How attack intensity affects quality vs. robustness</p>
+                    <p><strong>2. Attack Comparison:</strong> Which attacks are most efficient (high robustness impact, low quality loss)</p>
+                    <p><strong>3. Model Vulnerability:</strong> Identify weak points in different watermark models</p>
+                    <p><strong>4. Factor Sensitivity:</strong> Model response to varying attack intensities</p>
+                    
+                    <h4>Data Processing:</h4>
+                    <p>For each attack factor, we extract both robustness and visual quality metrics, then sort by visual quality values to create proper curve visualization. Points are connected to show the <span class="highlight">performance degradation trajectory</span> as attack intensity increases.</p>
+                    
+                    <p><strong>Interpretation:</strong> Steeper curves indicate higher attack efficiency, while flatter curves suggest better model resilience to that attack type.</p>
+                </div>
+                
+                <div id="model-robustness-curves" class="charts-grid charts-grid-2">
+                    <!-- 每行2个图表的网格布局 -->
+                </div>
+            </div>
+
+            <!-- 子部分 2.3：失真图像可视化 -->
+            <div class="subsection" id="distortion-visualization-section">
+                <h2 class="subsection-title">Distortion Image Visualization</h2>
+                
+                <div id="distortion-visualization">
+                    <!-- 按模型分区域，每个区域内每行10个图像 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 区域三：视觉质量评估 -->
+        <section id="quality-section" class="section">
+            <h1 class="section-title">Visual Quality Evaluation</h1>
+            
+            <!-- 子部分 3.1：视觉质量指标 -->
+            <div class="subsection" id="quality-metrics-section">
+                <h2 class="subsection-title">Visual Quality Metrics</h2>
+                
+                <div id="quality-metrics-charts" class="charts-grid charts-grid-3">
+                    <!-- 小提琴图和分组柱状图，一行显示3个图表 -->
+                </div>
+            </div>
+
+            <!-- 子部分 3.2：Stego 图像对比 -->
+            <div class="subsection" id="stego-comparison-section">
+                <h2 class="subsection-title">Stego Image Comparison</h2>
+                
+                <div id="stego-comparison">
+                    <!-- 按列布局：每列代表一个模型，行为图像类型 -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 返回按钮 -->
+    <button class="back-button" onclick="goBack()">
+        ← Back to Model Selection
+    </button>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/utils/data-processor.js"></script>
+    <script src="../js/charts/quality-charts.js"></script>
+    <script src="../js/charts/robustness-charts.js"></script>
+    <script src="../js/charts/attack-charts.js"></script>
+    <script src="../js/charts/performance-charts.js"></script>
+    <script>
+        let loadedModelData = [];
+        let selectedModelNames = [];
+
+        // 导航功能
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        function goBack() {
+            window.location.href = 'select-models.html';
+        }
+
+        // 平滑滚动导航
+        function initSmoothScrolling() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const navSublinks = document.querySelectorAll('.nav-sublink');
+            
+            // 主导航链接处理
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetSection = this.getAttribute('data-section');
+                    const targetElement = document.getElementById(targetSection);
+                    
+                    // 切换展开状态
+                    const parentItem = this.closest('.nav-item');
+                    const isExpanded = parentItem.classList.contains('expanded');
+                    
+                    // 关闭所有其他展开的项目
+                    document.querySelectorAll('.nav-item.expanded').forEach(item => {
+                        if (item !== parentItem) {
+                            item.classList.remove('expanded');
+                        }
+                    });
+                    
+                    // 切换当前项目
+                    parentItem.classList.toggle('expanded');
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        
+                        // 更新活动状态
+                        navLinks.forEach(nav => nav.classList.remove('active'));
+                        navSublinks.forEach(nav => nav.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        // 在移动端关闭侧边栏
+                        if (window.innerWidth <= 768) {
+                            document.getElementById('sidebar').classList.remove('open');
+                        }
+                    }
+                });
+            });
+            
+            // 二级导航链接处理
+            navSublinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetSection = this.getAttribute('data-section');
+                    const targetElement = document.getElementById(targetSection);
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                        
+                        // 更新活动状态
+                        navLinks.forEach(nav => nav.classList.remove('active'));
+                        navSublinks.forEach(nav => nav.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        // 在移动端关闭侧边栏
+                        if (window.innerWidth <= 768) {
+                            document.getElementById('sidebar').classList.remove('open');
+                        }
+                    }
+                });
+            });
+            
+            // 初始化时展开第一个分组
+            const firstNavItem = document.querySelector('.nav-item');
+            if (firstNavItem) {
+                firstNavItem.classList.add('expanded');
+            }
+        }
+
+        // 数据加载
+        function getSelectedModelsFromStorage() {
+            try {
+                const selectedModelsJson = localStorage.getItem('selectedModels');
+                return selectedModelsJson ? JSON.parse(selectedModelsJson) : [];
+            } catch (e) {
+                console.error('Error parsing selected models from localStorage:', e);
+                return [];
+            }
+        }
+
+        async function loadModelData(modelNames) {
+            console.log('Loading model data for:', modelNames);
+            const dataPromises = modelNames.map(name => {
+                const path = `../data/models/result_${name}.json`;
+                return fetch(path)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status} for ${path}`);
+                        }
+                        return response.json();
+                    })
+                    .catch(error => {
+                        console.error(`Failed to load data for ${name}:`, error);
+                        return null;
+                    });
+            });
+
+            try {
+                const results = await Promise.all(dataPromises);
+                return results.filter(data => data !== null);
+            } catch (error) {
+                console.error("Error loading model data:", error);
+                return [];
+            }
+        }
+
+        function showLoading() {
+            const sections = ['overall-ranking-hero', 'robustness-scores-grid', 'robustness-curves-grid', 
+                             'attack-effectiveness-ranking', 'model-robustness-curves', 'distortion-visualization',
+                             'quality-metrics-charts', 'stego-comparison'];
+            
+            sections.forEach(sectionId => {
+                const element = document.getElementById(sectionId);
+                if (element) {
+                    element.innerHTML = `
+                        <div class="loading-message">
+                            <div class="spinner"></div>
+                            <p>Loading data...</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // 初始化页面
+        async function initializePerformanceAnalysis() {
+            const selectedModels = getSelectedModelsFromStorage();
+            if (selectedModels.length === 0) {
+                alert('No models selected. Please go back and select models.');
+                window.location.href = 'select-models.html';
+                return;
+            }
+
+            selectedModelNames = selectedModels;
+            showLoading();
+
+            try {
+                loadedModelData = await loadModelData(selectedModels);
+                console.log("Loaded model data:", loadedModelData);
+
+                if (loadedModelData.length === 0) {
+                    throw new Error('No model data could be loaded');
+                }
+
+                // 渲染所有可视化内容
+                renderAllVisualizations();
+            } catch (error) {
+                console.error("Initialization error:", error);
+                showError(error.message);
+            }
+        }
+
+        function showError(message) {
+            const sections = ['overall-ranking-hero', 'robustness-scores-grid', 'robustness-curves-grid', 
+                             'attack-effectiveness-ranking', 'model-robustness-curves', 'distortion-visualization',
+                             'quality-metrics-charts', 'stego-comparison'];
+            
+            sections.forEach(sectionId => {
+                const element = document.getElementById(sectionId);
+                if (element) {
+                    element.innerHTML = `
+                        <div class="loading-message">
+                            <p style="color: #dc3545;">Error: ${message}</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function renderAllVisualizations() {
+            // 这里将调用各个渲染函数
+            console.log('Starting to render all visualizations...');
+            
+            // 初始化全局颜色方案
+            if (typeof initializeGlobalModelColors === 'function') {
+                initializeGlobalModelColors(loadedModelData);
+            }
+            
+            // 直接调用 performance-charts.js 中的函数
+            if (typeof window.renderOverallRankingHero === 'function') {
+                window.renderOverallRankingHero(loadedModelData);
+            } else {
+                document.getElementById('overall-ranking-hero').innerHTML = '<p class="loading-message">Overall Ranking Hero View - Function not available</p>';
+            }
+            
+            if (typeof window.renderRobustnessScoresGrid === 'function') {
+                window.renderRobustnessScoresGrid(loadedModelData);
+            } else {
+                document.getElementById('robustness-scores-grid').innerHTML = '<p class="loading-message">Robustness Scores Grid - Function not available</p>';
+            }
+            
+            if (typeof window.renderRobustnessCurvesGrid === 'function') {
+                window.renderRobustnessCurvesGrid(loadedModelData);
+            } else {
+                document.getElementById('robustness-curves-grid').innerHTML = '<p class="loading-message">Robustness Curves Grid - Function not available</p>';
+            }
+            
+            if (typeof window.renderAttackEffectivenessRanking === 'function') {
+                window.renderAttackEffectivenessRanking(loadedModelData);
+            } else {
+                document.getElementById('attack-effectiveness-ranking').innerHTML = '<p class="loading-message">Attack Effectiveness Ranking - Function not available</p>';
+            }
+            
+            // 其他函数
+            if (typeof window.renderModelRobustnessCurves === 'function') {
+                window.renderModelRobustnessCurves(loadedModelData);
+            } else {
+                renderModelRobustnessCurvesLocal(loadedModelData);
+            }
+            if (typeof window.renderDistortionVisualization === 'function') {
+                window.renderDistortionVisualization(loadedModelData);
+            } else {
+                renderDistortionVisualizationLocal(loadedModelData);
+            }
+            if (typeof window.renderQualityMetricsCharts === 'function') {
+                window.renderQualityMetricsCharts(loadedModelData);
+            } else {
+                renderQualityMetricsChartsLocal(loadedModelData);
+            }
+            if (typeof window.renderStegoComparison === 'function') {
+                window.renderStegoComparison(loadedModelData);
+            } else {
+                renderStegoComparisonLocal(loadedModelData);
+            }
+        }
+
+        // 本地占位符函数（避免与全局函数名冲突）
+        function renderModelRobustnessCurvesLocal(data) {
+            document.getElementById('model-robustness-curves').innerHTML = '<p class="loading-message">Model Robustness Curves - To be implemented</p>';
+        }
+
+        function renderDistortionVisualizationLocal(data) {
+            document.getElementById('distortion-visualization').innerHTML = '<p class="loading-message">Distortion Image Visualization - To be implemented</p>';
+        }
+
+        function renderQualityMetricsChartsLocal(data) {
+            document.getElementById('quality-metrics-charts').innerHTML = '<p class="loading-message">Quality Metrics Charts - To be implemented</p>';
+        }
+
+        function renderStegoComparisonLocal(data) {
+            document.getElementById('stego-comparison').innerHTML = '<p class="loading-message">Stego Image Comparison - To be implemented</p>';
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initSmoothScrolling();
+            initializePerformanceAnalysis();
+            
+            // 添加图表重新渲染监听器，解决折线不显示问题
+            if (typeof addChartResizeListeners === 'function') {
+                setTimeout(() => {
+                    addChartResizeListeners();
+                }, 1000); // 延迟1秒执行，确保所有图表都已渲染
+            }
+        });
+    </script>
+</body>
+</html>

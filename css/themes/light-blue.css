@@ -1,0 +1,113 @@
+/* watermarklab-website/css/themes/light-blue.css */
+:root {
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --secondary-color: #6c757d;
+    --secondary-hover: #545b62;
+    --success-color: #28a745;
+    --success-hover: #218838;
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-bg: #f8f9fa;
+    --dark-text: #333;
+    --light-text: #6c757d;
+    --border-color: #e9ecef;
+    --shadow: 0 2px 10px rgba(0,0,0,0.1);
+    --shadow-hover: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+body {
+    background-color: var(--light-bg);
+    color: var(--dark-text);
+}
+
+.page-header {
+    border-bottom-color: var(--primary-color);
+}
+
+.page-header h1 {
+    color: var(--primary-color);
+}
+
+.section-title {
+    color: var(--primary-color);
+    border-bottom-color: var(--border-color);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-hover);
+    border-color: var(--secondary-hover);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.btn-success:hover {
+    background-color: var(--success-hover);
+    border-color: var(--success-hover);
+    box-shadow: var(--shadow-hover);
+}
+
+.endpoint {
+    border-left-color: var(--primary-color);
+}
+
+.method {
+    background-color: var(--primary-color);
+}
+
+.path {
+    color: var(--primary-color);
+}
+
+.chart-container {
+    background-color: white;
+    box-shadow: var(--shadow);
+}
+
+.centered-chart {
+    background-color: white;
+    box-shadow: var(--shadow);
+}
+
+.data-table th {
+    background-color: var(--light-bg);
+}
+
+.data-table th,
+.data-table td {
+    border-bottom-color: var(--border-color);
+}
+
+.progress-bar {
+    background-color: var(--light-bg);
+}
+
+.progress-fill {
+    background-color: var(--primary-color);
+}
+
+.code-block {
+    background-color: var(--light-bg);
+    border-color: var(--border-color);
+}

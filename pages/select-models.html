@@ -1,0 +1,44 @@
+<!-- watermarklab-website/pages/select-models.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Models - WatermarkLab</title>
+    <link rel="icon" href="../assets/logo.svg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/themes/light-blue.css">
+</head>
+<body>
+    <div class="page-container">
+        <header class="page-header">
+            <h1>Select Models</h1>
+        </header>
+        <div id="models-container" class="models-grid">
+        </div>
+
+        <div class="controls-section">
+            <button id="back-nevi" class="btn btn-transparent">Back</button>
+            <button id="import-btn" class="btn btn-transparent">Import Models</button>
+            <button id="enter-system-btn" class="btn btn-transparent">Enter System</button>
+        </div>
+
+        <div id="upload-progress" class="progress-section" style="display: none;">
+            <div class="progress-bar">
+                <div id="progress" class="progress-fill"></div>
+            </div>
+            <p id="progress-text" class="progress-text">Uploading...</p>
+        </div>
+    </div>
+
+    <script src="../js/models.js"></script>
+    <script src="../js/utils/modal.js"></script>
+    <script src="../js/utils/file-handler.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/utils/data-processor.js"></script>
+    <script src="../js/charts/quality-charts.js"></script>
+    <script src="../js/charts/robustness-charts.js"></script>
+    <script src="../js/charts/attack-charts.js"></script>
+</body>
+</html>

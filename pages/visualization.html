@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Analysis - WatermarkLab</title>
+    <link rel="icon" href="../assets/logo.svg">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="../css/themes/light-blue.css">
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js" charset="utf-8"></script>
+    <style>
+        .page-container {
+          max-width: 90%;
+          margin: 0 auto;
+          padding: 24px 20px 60px;
+        }
+
+        .visualization-section {
+            width: 100%;
+            max-width: 100%;
+            margin: 20px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .section-title {
+            text-align: center;
+            color: #007bff;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 500px;
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-wrapper {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: visible;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .loading-message {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+
+        .rankings-table th,
+        .rankings-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .rankings-table th {
+            background-color: #f8f9fa;
+        }
+
+        .overall-ranking {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 8px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="page-container">
+
+        <!-- 区域 3: 鲁棒性能 -->
+        <div id="robustness-area" class="visualization-section">
+            <h2 class="section-title">Robustness Performance</h2>
+
+            <!-- 子部分 1: 不同失真下模型排名 -->
+            <h3>Model Rankings under Different Distortions</h3>
+            <div id="rankings-overall" class="overall-ranking">
+                <!-- 总体排名将通过JS动态生成 -->
+            </div>
+            <div id="rankings-by-distortion">
+                <!-- 各失真下排名将通过JS动态生成 -->
+            </div>
+
+            <!-- 子部分 2: 模型鲁棒性折线图 (按失真) -->
+            <h3>Model Robustness by Distortion</h3>
+            <div id="robustness-line-charts" class="charts-grid">
+                <!-- 折线图将通过JS动态生成 -->
+            </div>
+
+            <!-- 子部分 3: 失真强度分析 (PSNR vs Accuracy/TPR) -->
+            <h3>Distortion Strength Analysis (PSNR vs Accuracy/TPR)</h3>
+            <div id="psnr-vs-accuracy-charts" class="charts-grid">
+                <!-- PSNR vs Accuracy 图表将通过JS动态生成 -->
+            </div>
+        </div>
+
+        <!-- 区域 4: 攻击器排名 -->
+        <div id="attack-ranking-area" class="visualization-section">
+            <h2 class="section-title">Attack Performance</h2>
+
+            <!-- 子部分 1: 攻击有效性柱状图 -->
+            <h3>Attack Effectiveness Ranking</h3>
+            <div class="chart-wrapper">
+                <div id="attack-effectiveness-chart" class="chart-container"></div>
+            </div>
+
+            <!-- 子部分 2: 攻击效果图像可视化 -->
+            <h3>Attack Effect Visualization</h3>
+            <div id="noise-images" class="image-grid">
+                <!-- 攻击图像将通过JS动态生成 -->
+            </div>
+        </div>
+        <!-- 区域 2: 视觉质量指标 -->
+        <div id="visual-quality-area" class="visualization-section">
+            <h2 class="section-title">Visual Quality Metrics</h2>
+
+            <!-- 子部分 1: 指标柱状图 -->
+            <h3>Metrics Charts</h3>
+            <div id="vq-charts" class="charts-grid">
+                <!-- 图表将根据json数据中的testvisualqualitymetrics动态生成 -->
+            </div>
+
+            <!-- 子部分 2: 图像可视化 -->
+            <h3>Image Visualization</h3>
+            <div id="stego-images" class="image-grid">
+                <!-- 图像将通过JS动态生成 -->
+            </div>
+        </div>
+                <!-- 区域 1: 实验设置 -->
+        <div id="experiment-settings-area" class="visualization-section">
+            <h2 class="section-title">Experiment Settings</h2>
+            <div id="settings-table-container">
+                <!-- 设置表格将通过JS动态生成 -->
+            </div>
+        </div>
+        <div class="controls-section">
+            <button id="back-btn" class="btn btn-transparent">Back to Model Selection</button>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script src="../js/utils/data-processor.js"></script>
+    <script src="../js/charts/quality-charts.js"></script>
+    <script src="../js/charts/robustness-charts.js"></script>
+    <script src="../js/charts/attack-charts.js"></script>
+<!-- 替换 visualization.html 中从 "初始化页面" 注释开始到 </script> 标签结束的整个 <script> 块 -->
+<script>
+    let loadedModelData = [];
+    let selectedModelNames = [];
+
+    function getSelectedModelsFromStorage() {
+        try {
+            const selectedModelsJson = localStorage.getItem('selectedModels');
+            console.log(selectedModelsJson)
+            return selectedModelsJson ? JSON.parse(selectedModelsJson) : [];
+        } catch (e) {
+            console.error('Error parsing selected models from localStorage:', e);
+            return [];
+        }
+    }
+
+    async function loadModelData(modelNames) {
+        console.log('Loading model data for:', modelNames);
+        const dataPromises = modelNames.map(name => {
+            const path = `../data/models/result_${name}.json`;
+            console.log(`Fetching data from: ${path}`);
+            return fetch(path)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status} for ${path}`);
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    console.error(`Failed to load data for ${name}:`, error);
+                    return null;
+                });
+        });
+
+        try {
+            const results = await Promise.all(dataPromises);
+            return results.filter(data => data !== null);
+        } catch (error) {
+            console.error("Error loading model data:", error);
+            return [];
+        }
+    }
+
+    // 初始化页面
+    async function initializeVisualization() {
+        const selectedModels = getSelectedModelsFromStorage();
+        if (selectedModels.length === 0) {
+            alert('No models selected. Please go back and select models.');
+            window.location.href = 'select-models.html';
+            return;
+        }
+
+        selectedModelNames = selectedModels;
+
+        // 创建模型标签
+        // createModelTags(selectedModels);
+
+        // 显示加载消息
+        showLoadingMessage();
+
+        try {
+            // 加载真实数据
+            loadedModelData = await loadModelData(selectedModels);
+            console.log("Loaded model data:", loadedModelData);
+
+            if (loadedModelData.length === 0) {
+                hideLoadingMessage();
+                document.getElementById('experiment-settings-area').innerHTML = '<p class="loading-message">Failed to load any model data.</p>';
+                return;
+            }
+
+            // 隐藏加载消息
+            hideLoadingMessage();
+
+            // 渲染所有可视化内容
+            renderAllVisualizations();
+        } catch (error) {
+            hideLoadingMessage();
+            console.error("Initialization error:", error);
+            document.getElementById('experiment-settings-area').innerHTML = `<p class="loading-message">Error during initialization: ${error.message}</p>`;
+        }
+    }
+
+    // function createModelTags(modelNames) {
+    //     const container = document.getElementById('model-tags');
+    //     container.innerHTML = '';
+    //
+    //     modelNames.forEach(name => {
+    //         const tag = document.createElement('div');
+    //         tag.className = 'model-tag selected';
+    //         tag.textContent = name;
+    //         // 可以添加点击事件来切换模型显示
+    //         tag.addEventListener('click', () => {
+    //             // 实现模型切换逻辑 (可选功能)
+    //             console.log(`Toggled model: ${name}`);
+    //         });
+    //         container.appendChild(tag);
+    //     });
+    // }
+
+    function showLoadingMessage() {
+        // 可以在各个区域添加加载提示
+        document.querySelectorAll('.visualization-section').forEach(section => {
+            // 避免重复添加
+            if (!section.querySelector('.loading-message')) {
+                const loading = document.createElement('div');
+                loading.className = 'loading-message';
+                loading.textContent = 'Loading visualization...';
+                section.appendChild(loading);
+            }
+        });
+    }
+
+    function hideLoadingMessage() {
+        document.querySelectorAll('.loading-message').forEach(el => el.remove());
+    }
+
+    // 渲染所有可视化内容
+    function renderAllVisualizations() {
+        if (loadedModelData.length === 0) {
+            console.warn('No model data loaded.');
+            return;
+        }
+
+        // 渲染实验设置 (区域 1)
+        renderExperimentSettings(loadedModelData[0]); // 假设只显示第一个模型的设置
+
+        // 渲染视觉质量指标 (区域 2)
+        renderVisualQualityCharts(loadedModelData);
+        renderStegoImages(loadedModelData);
+
+        // 渲染鲁棒性能 (区域 3)
+        renderRobustnessRankings(loadedModelData);
+        renderRobustnessLineCharts(loadedModelData);
+        renderPsnrVsAccuracyCharts(loadedModelData);
+
+        // 渲染攻击器排名 (区域 4)
+        renderAttackEffectivenessChart(loadedModelData);
+        renderNoiseImages(loadedModelData);
+    }
+
+    // 渲染实验设置表格 (区域 1)
+    function renderExperimentSettings(modelData) {
+        const container = document.getElementById('settings-table-container');
+        container.innerHTML = '';
+
+        const table = document.createElement('table');
+        table.className = 'data-table';
+
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const th1 = document.createElement('th');
+        th1.textContent = 'Attribute';
+        const th2 = document.createElement('th');
+        th2.textContent = 'Value';
+        headerRow.appendChild(th1);
+        headerRow.appendChild(th2);
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        // 定义要显示的属性
+        const attributes = [
+            { key: 'modelname', label: 'Model Name' },
+            { key: 'modeltype', label: 'Model Type' },
+            { key: 'description', label: 'Description' },
+            { key: 'imagesize', label: 'Image Size' },
+            { key: 'payload', label: 'Payload' },
+            { key: 'testdataset', label: 'Test Dataset' }
+        ];
+
+        attributes.forEach(attr => {
+            if (modelData.hasOwnProperty(attr.key)) {
+                const row = document.createElement('tr');
+                const td1 = document.createElement('td');
+                td1.textContent = attr.label;
+                const td2 = document.createElement('td');
+                td2.textContent = modelData[attr.key];
+                row.appendChild(td1);
+                row.appendChild(td2);
+                tbody.appendChild(row);
+            }
+        });
+
+        table.appendChild(tbody);
+        container.appendChild(table);
+    }
+
+    function renderStegoImages(modelsData) {
+        const container = document.getElementById('stego-images');
+        container.innerHTML = '';
+
+        modelsData.forEach(modelData => {
+            const stegoData = modelData.visualcompare?.stego;
+            if (!stegoData) return;
+
+            // 为每个模型创建一个子网格
+            const modelGrid = document.createElement('div');
+            modelGrid.className = 'image-grid';
+            modelGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
+            modelGrid.style.gap = '10px';
+            modelGrid.style.marginBottom = '20px';
+            modelGrid.innerHTML = `<h4 style="grid-column: 1 / -1; text-align: center;">${modelData.modelname}</h4>`;
+
+            // 添加图像
+            const imageTypes = ['cover', 'stego', 'residual'];
+            imageTypes.forEach(type => {
+                if (stegoData[type]) {
+                    const card = document.createElement('div');
+                    card.className = 'image-card';
+
+                    const img = document.createElement('img');
+                    // 确保Base64字符串格式正确
+                    let src = stegoData[type];
+                    if (!src.startsWith('data:image')) {
+                        // 如果没有data URL前缀，假设是PNG
+                        src = `data:image/png;base64,${src}`;
+                    }
+                    img.src = src;
+                    img.alt = `${type} image`;
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+
+                    const label = document.createElement('div');
+                    label.className = 'image-label';
+                    label.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+
+                    card.appendChild(img);
+                    card.appendChild(label);
+                    modelGrid.appendChild(card);
+                }
+            });
+
+            container.appendChild(modelGrid);
+        });
+    }
+
+    // 渲染攻击效果图像 (区域 4 子部分 2)
+    function renderNoiseImages(modelsData) {
+        const container = document.getElementById('noise-images');
+        container.innerHTML = '';
+
+        modelsData.forEach(modelData => {
+            const noiseData = modelData.visualcompare?.noise;
+            if (!noiseData) return;
+
+            // 为每个模型创建一个子网格
+            const modelGrid = document.createElement('div');
+            modelGrid.className = 'image-grid';
+            modelGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
+            modelGrid.style.gap = '10px';
+            modelGrid.style.marginBottom = '20px';
+            modelGrid.innerHTML = `<h4 style="grid-column: 1 / -1; text-align: center;">${modelData.modelname}</h4>`;
+
+            // 添加图像
+            Object.entries(noiseData).forEach(([noiseType, base64Image]) => {
+                if (base64Image) {
+                    const card = document.createElement('div');
+                    card.className = 'image-card';
+
+                    const img = document.createElement('img');
+                    // 确保Base64字符串格式正确
+                    let src = base64Image;
+                    if (!src.startsWith('data:image')) {
+                        // 如果没有data URL前缀，假设是PNG
+                        src = `data:image/png;base64,${src}`;
+                    }
+                    img.src = src;
+                    img.alt = `${noiseType} image`;
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+
+                    const label = document.createElement('div');
+                    label.className = 'image-label';
+                    label.textContent = noiseType;
+
+                    card.appendChild(img);
+                    card.appendChild(label);
+                    modelGrid.appendChild(card);
+                }
+            });
+
+            container.appendChild(modelGrid);
+        });
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 绑定返回按钮事件
+        const backBtn = document.getElementById('back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', function() {
+                window.location.href = 'select-models.html';
+            });
+        }
+
+        // 检查Plotly是否已加载，如果没有则等待
+        function waitForPlotlyAndInitialize() {
+            if (typeof Plotly !== 'undefined') {
+                console.log('Plotly is loaded, initializing visualization...');
+                initializeVisualization();
+            } else {
+                console.log('Waiting for Plotly to load...');
+                setTimeout(waitForPlotlyAndInitialize, 100);
+            }
+        }
+        
+        // 初始化可视化
+        waitForPlotlyAndInitialize();
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.model-card {
+    position: relative;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: none; /* 禁用过渡效果 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    /* 移除 float 动画 */
+    transform-origin: center;
+}
+
+.model-card:hover {
+    /* 移除悬浮时的缩放和阴影效果 */
+    animation-play-state: running; /* 确保没有动画暂停 */
+    transform: none; /* 禁用缩放 */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* 保持默认阴影 */
+}
+
+.model-card.selected {
+    border: 2px solid #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.2);
+    transform: scale(1.02);
+}
+
+.model-thumbnail {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007bff 0%, #17a2b8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.model-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.model-type {
+    font-size: 0.75rem;
+    color: #007bff;
+    background-color: rgba(0,123,255,0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.model-description {
+    font-size: 0.8rem;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+.tooltip {
+    position: absolute;
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    max-width: 220px;
+    z-index: 1000;
+    opacity: 0; /* 保持隐藏 */
+    transform: translateY(10px);
+    transition: none; /* 禁用过渡效果 */
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0,0,0,0.9) transparent transparent transparent;
+}
+
+.model-card:hover .tooltip {
+    opacity: 0; /* 悬浮时保持隐藏 */
+    transform: translateY(10px); /* 保持初始位置 */
+}
+
+.page-transition {
+    animation: fadeIn 0.4s ease-out;
+}
+
+.section-enter {
+    animation: fadeIn 0.5s ease-out;
+}

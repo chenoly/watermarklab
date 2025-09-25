@@ -1,0 +1,305 @@
+<!-- watermarklab-website/pages/getting-started.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started - WatermarkLab</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/themes/light-blue.css">
+    <style>
+        /* Getting Started Specific Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-text);
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .page-header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .page-header p {
+            color: var(--secondary-text);
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .section {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .section:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .section h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        
+        .section h3 {
+            color: var(--dark-text);
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+        
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 20px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .code-block pre {
+            margin: 0;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding-left: 30px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list li:before {
+            content: '✓';
+            color: var(--success-color);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        
+        .btn-back {
+            display: inline-block;
+            margin-top: 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        
+        .btn-back:hover {
+            background-color: var(--secondary-hover);
+        }
+        
+        .back-to-api {
+            display: inline-block;
+            margin-top: 40px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        
+        .back-to-api:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .back-to-home {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .back-to-home:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <h1>Getting Started with WatermarkLab</h1>
+            <p>A comprehensive guide to start using the WatermarkLab library for image watermarking research and evaluation.</p>
+        </header>
+        
+        <section class="section" id="introduction">
+            <h2>Introduction</h2>
+            <p>WatermarkLab is a comprehensive Python toolkit for the development, evaluation, and comparison of robust image watermarking techniques. It supports both Post-Generation Watermarking (PGW) and In-Generation Watermarking (IGW) approaches, providing a unified framework for benchmarking watermarking algorithms under various attack scenarios.</p>
+            
+            <h3>Key Features</h3>
+            <ul class="feature-list">
+                <li>Unified evaluation pipeline for both PGW and IGW models</li>
+                <li>Extensive collection of image attacks for robustness testing</li>
+                <li>Comprehensive set of evaluation metrics</li>
+                <li>Modular design for easy extension</li>
+                <li>Structured result reporting with visualizations</li>
+            </ul>
+        </section>
+        
+        <section class="section" id="installation">
+            <h2>Installation</h2>
+            
+            <h3>Installation Command</h3>
+            <div class="code-block">
+                <pre><code>pip install watermarklab</code></pre>
+            </div>
+            
+            <h3>Download Models</h3>
+            <p>Download the WatermarkLab repository and the required Stable Diffusion model:</p>
+            <div class="code-block">
+                <pre><code>huggingface-cli download chenoly/watermarklab
+huggingface-cli download stabilityai/stable-diffusion-2-1-base</code></pre>
+            </div>
+        </section>
+        
+        <section class="section" id="core-concepts">
+            <h2>Core Concepts</h2>
+            
+            <h3>Watermark Model Types</h3>
+            <div class="module-cards">
+                <div class="module-card">
+                    <h4>PGW (Post-Generation Watermarking)</h4>
+                    <p>Watermark is embedded into pre-existing images after they have been created.</p>
+                </div>
+                <div class="module-card">
+                    <h4>IGW (In-Generation Watermarking)</h4>
+                    <p>Watermark is embedded during the image generation process (e.g., in diffusion models).</p>
+                </div>
+            </div>
+            
+            <h3>Evaluation Pipeline</h3>
+            <p>The library provides a standardized evaluation process consisting of:</p>
+            <ol>
+                <li>Embedding watermark into cover images/prompts</li>
+                <li>Applying various attacks (noise, compression, geometric transformations)</li>
+                <li>Extracting watermark from attacked images</li>
+                <li>Computing evaluation metrics</li>
+                <li>Generating comprehensive result reports</li>
+            </ol>
+        </section>
+        
+        <section class="section" id="quick-start">
+            <h2>Quick Start</h2>
+            <p>Here's a quick example of how to use WatermarkLab for evaluating a watermark model:</p>
+            <div class="code-block">
+                <pre><code>from watermarklab.laboratories import evaluate
+from watermarklab.watermarks.PGWs import StegaStamp
+from watermarklab.attackers.testattackers import GaussianNoise, Jpeg
+from watermarklab.utils.basemodel import AttackerWithFactors
+from watermarklab.utils.data import DataLoader
+from watermarklab.datasets.datasets import TestDataset
+
+# Initialize watermark model
+model = StegaStamp(bits_len=16, img_size=256)
+
+# Define attacks
+noise_attacks = [
+    AttackerWithFactors(
+        attacker=GaussianNoise(),
+        attackername="Gaussian Noise",
+        factors=[5, 10, 15],
+        factorsymbol="$\sigma$"
+    ),
+    AttackerWithFactors(
+        attacker=Jpeg(),
+        attackername="JPEG Compression",
+        factors=[90, 70, 50],
+        factorsymbol="$Q$"
+    )
+]
+
+# Create dataset and dataloader
+dataset = TestDataset(img_size=256, bit_len=16, iter_num=3, dataset_name="TestSet")
+dataloader = DataLoader(dataset, batch_size=4)
+
+# Run evaluation
+results = evaluate(
+    save_path="./results",
+    watermark_model=model,
+    noise_models=noise_attacks,
+    dataloader=dataloader,
+    mode="encode"
+)
+
+# Process results
+print(f"Evaluation completed for {model.modelname}")
+print(f"PSNR: {results['visualqualityresult']['PSNR']:.2f} dB")
+print(f"SSIM: {results['visualqualityresult']['SSIM']:.4f}")</code></pre>
+            </div>
+        </section>
+        
+        <div style="text-align: center;">
+            <a href="./api-document.html" class="back-to-api">View API Reference</a>
+        </div>
+        
+        <a href="index.html" class="btn-back">Back to Home</a>
+    </div>
+    
+    <!-- 返回主页按钮 -->
+    <a href="index.html" class="back-to-home" title="返回主页">
+        <i class="fa fa-home"></i>
+    </a>
+    
+    <!-- 加载Font Awesome图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</body>
+</html>

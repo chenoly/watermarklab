@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WatermarkLab — Robust Image Watermarking Benchmark</title>
+  <link rel="icon" href="../assets/logo.svg">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #05050f;
+      color: #e0e0ff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.7;
+      padding: 40px 20px;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(60, 0, 255, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(0, 200, 255, 0.1) 0%, transparent 20%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 60px 0 40px;
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      background: linear-gradient(135deg, #ff00cc, #3333ff, #00d4ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 900;
+      letter-spacing: -1px;
+      text-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      0% { text-shadow: 0 0 10px rgba(255, 0, 204, 0.5), 0 0 20px rgba(255, 0, 204, 0.3); }
+      100% { text-shadow: 0 0 20px rgba(0, 200, 255, 0.7), 0 0 40px rgba(0, 200, 255, 0.4); }
+    }
+
+    .subtitle {
+      font-size: 1.3rem;
+      color: #a0a0ff;
+      max-width: 800px;
+      margin: 0 auto;
+      margin-top: 15px;
+      font-weight: 300;
+    }
+
+    .content {
+      background: rgba(15, 15, 40, 0.7);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      margin: 40px auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
+                  inset 0 0 20px rgba(100, 100, 255, 0.1);
+      border: 1px solid rgba(100, 100, 255, 0.2);
+    }
+
+    h2 {
+      font-size: 2rem;
+      margin: 30px 0 20px;
+      color: #8080ff;
+      position: relative;
+      display: inline-block;
+    }
+
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, #ff00cc, #00d4ff);
+      border-radius: 2px;
+    }
+
+    p {
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+      text-align: justify;
+    }
+
+    .highlight {
+      color: #ff66ff;
+      font-weight: 600;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      margin: 40px 0;
+      justify-content: center;
+    }
+
+    .stat-box {
+      background: rgba(30, 30, 70, 0.8);
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      min-width: 150px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(150, 150, 255, 0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .stat-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(100, 100, 255, 0.4);
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00d4ff, #ff00cc);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .stat-label {
+      font-size: 0.95rem;
+      color: #b0b0ff;
+      margin-top: 8px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      padding: 30px;
+      color: #888;
+      font-size: 0.95rem;
+      border-top: 1px solid rgba(100, 100, 255, 0.2);
+    }
+
+    .visit-btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      box-shadow: 0 5px 15px rgba(37, 117, 252, 0.4);
+      transition: all 0.3s;
+    }
+
+    .visit-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(37, 117, 252, 0.6);
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+      .content {
+        padding: 25px;
+      }
+      .stats {
+        gap: 15px;
+      }
+      .stat-box {
+        min-width: 120px;
+        padding: 20px 10px;
+      }
+      .stat-number {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>WATERMARKLAB</h1>
+      <p class="subtitle">A Comprehensive Framework for Systematic Benchmarking & Development of Robust Image Watermarks</p>
+    </header>
+
+    <div class="content">
+      <p>
+        With the growing demand for multimedia content, image protection has become increasingly important. Robust image watermarking, as a core technology for copyright protection, has attracted extensive attention.
+      </p>
+
+      <h2>🌟 What is WatermarkLab?</h2>
+      <p>
+        We propose <span class="highlight">WatermarkLab</span>, a powerful framework aiming to establish a comprehensive, fair, and interactive platform for blind robust image watermark benchmarking and development.
+      </p>
+
+      <h2>⚡ Key Features</h2>
+      <p>
+        WatermarkLab supports benchmark evaluation of all types of blind robust image watermarks — including <span class="highlight">in-generation</span> and <span class="highlight">post-generation</span> watermarks.
+      </p>
+
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number">10</div>
+          <div class="stat-label">Watermark Methods</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">34</div>
+          <div class="stat-label">Attackers (Benchmark)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">28</div>
+          <div class="stat-label">Differentiable Attackers</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">9</div>
+          <div class="stat-label">Methods Evaluated</div>
+        </div>
+      </div>
+
+      <p>
+        Beyond benchmarking, WatermarkLab integrates <span class="highlight">10 representative watermarking methods</span> for systematic comparison. It also includes <span class="highlight">34 attackers</span> for benchmarking and <span class="highlight">28 differentiable attackers</span> for development.
+      </p>
+
+      <p>
+        We evaluate the robustness of 9 watermarking methods under 34 attackers and identify their weaknesses — assisting researchers in enhancing robustness and designing new watermark removal attackers.
+      </p>
+
+      <h2>🛠️ Tools & Visualization</h2>
+      <p>
+        The framework provides auxiliary tools such as <span class="highlight">arithmetic coding</span> and <span class="highlight">reversible data hiding</span> techniques. For result visualization, WatermarkLab offers comprehensive tools and an interactive website — enabling intuitive analysis and comparison.
+      </p>
+
+      <div style="text-align: center; margin-top: 40px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+        <a href="../pages/navigation.html" class="visit-btn">VISIT INTERACTIVE WEBSITE</a>
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2025 WatermarkLab — Advancing the Future of Digital Image Protection
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "watermarklab-website",
+  "version": "1.0.0",
+  "description": "Watermarking algorithm performance visualization platform",
+  "main": "pages/index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "live-server",
+    "build": "echo 'No build required for static site'",
+    "test": "echo 'No tests configured'"
+  },
+  "keywords": [
+    "watermarking",
+    "visualization",
+    "plotly",
+    "static-site"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

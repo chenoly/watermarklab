@@ -1,0 +1,931 @@
+<!-- watermarklab-website/pages/api-document.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - WatermarkLab</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/themes/light-blue.css">
+    <!-- Prism.js 代码高亮库 CSS - 使用默认浅色主题并自定义 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <style>
+        /* API Documentation Specific Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-text);
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
+        }
+        .documentation-layout {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+        /* Sidebar Styles */
+        .sidebar {
+            width: 320px;
+            background-color: #fff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .sidebar-header h2 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+        .nav-section-title {
+            padding: 10px 20px;
+            font-weight: bold;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+        .nav-item {
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .nav-item:hover {
+            background-color: var(--light-bg);
+        }
+        .nav-item a {
+            color: var(--dark-text);
+            text-decoration: none;
+            display: block;
+        }
+        .nav-item.active {
+            background-color: var(--primary-color);
+        }
+        .nav-item.active a {
+            color: white;
+        }
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: 320px;
+            padding: 40px;
+            width: calc(100% - 320px);
+            box-sizing: border-box;
+        }
+        /* Back to Home Button Styles */
+        .back-to-home {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .back-to-home:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .back-to-home i {
+            font-size: 24px;
+        }
+        /* Section Styles */
+        .api-section {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: box-shadow 0.3s ease;
+        }
+        .api-section:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        .api-section h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .api-section h3 {
+            color: var(--dark-text);
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        .api-section h4 {
+            color: var(--dark-text);
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        /* --- Customized Prism.js Styles --- */
+        /* 使用默认的浅色主题作为基础 */
+        pre[class*="language-"] {
+            background: #f6f8fa; /* 稍微深一点的浅灰背景 */
+            border: 1px solid var(--border-color); /* 使用网站主题的边框色 */
+            border-radius: 5px;
+            padding: 20px;
+            margin: 15px 0;
+            overflow-x: auto;
+            position: relative; /* 为复制按钮定位 */
+        }
+        code[class*="language-"] {
+            /* Prism 默认字体可能需要调整 */
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        /* 自定义语法高亮颜色以匹配主题 */
+        .token.comment,
+        .token.prolog,
+        .token.doctype,
+        .token.cdata {
+            color: slategray;
+        }
+
+        .token.punctuation {
+            color: #999;
+        }
+
+        .token.namespace {
+            opacity: .7;
+        }
+
+        .token.property,
+        .token.tag,
+        .token.boolean,
+        .token.number,
+        .token.constant,
+        .token.symbol,
+        .token.deleted {
+            color: #905; /* 紫色，类似默认主题 */
+        }
+
+        .token.selector,
+        .token.attr-name,
+        .token.string,
+        .token.char,
+        .token.builtin,
+        .token.inserted {
+            color: #690; /* 绿色，类似默认主题 */
+        }
+
+        .token.operator,
+        .token.entity,
+        .token.url,
+        .language-css .token.string,
+        .style .token.string {
+            color: #9a6e3a; /* 棕色，类似默认主题 */
+        }
+
+        .token.atrule,
+        .token.attr-value,
+        .token.keyword {
+            color: var(--primary-color); /* 使用网站主题的主色 */
+        }
+
+        .token.function,
+        .token.class-name {
+            color: #DD4A68; /* 粉红色，类似默认主题 */
+        }
+
+        .token.regex,
+        .token.important,
+        .token.variable {
+            color: #e90;
+        }
+
+        .token.important,
+        .token.bold {
+            font-weight: bold;
+        }
+        .token.italic {
+            font-style: italic;
+        }
+
+        .token.entity {
+            cursor: help;
+        }
+        /* --- End Customized Prism.js Styles --- */
+
+        /* --- Copy Button Styles --- */
+        .code-block {
+            position: relative; /* 使按钮相对于代码块定位 */
+            margin: 15px 0;
+        }
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8); /* 半透明白色背景 */
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 10; /* 确保按钮在代码之上 */
+        }
+        .copy-button:hover {
+            background-color: var(--light-bg); /* 悬停时使用网站主题的浅色背景 */
+            border-color: var(--primary-color); /* 悬停时边框变为主题主色 */
+            color: var(--primary-color); /* 悬停时文字变为主题主色 */
+        }
+        .copy-button.copied {
+            background-color: #d4edda; /* 成功复制时的浅绿色背景 */
+            border-color: #28a745; /* 成功复制时的绿色边框 */
+            color: #155724; /* 成功复制时的深绿色文字 */
+        }
+        .copy-button.copied::after {
+            content: "Copied!";
+            margin-left: 5px;
+        }
+        /* --- End Copy Button Styles --- */
+
+
+        /* Parameter Table Styles */
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .param-table th,
+        .param-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .param-table th {
+            background-color: var(--light-bg);
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        .param-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        /* List Styles */
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        /* Example Box Styles */
+        .example-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .example-box h4 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+                width: 100%;
+            }
+            .menu-toggle {
+                display: block;
+            }
+        }
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        /* Button Styles */
+        .btn-back {
+            display: inline-block;
+            margin-top: 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .btn-back:hover {
+            background-color: var(--secondary-hover);
+        }
+        /* Feature List */
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding-left: 30px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .feature-list li:before {
+            content: '✓';
+            color: var(--success-color);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        /* Module Card Styles */
+        .module-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .module-card {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+        .module-card h4 {
+            color: var(--primary-color);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    <div class="documentation-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>API Docs</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Getting Started</div>
+                <div class="nav-item"><a href="#introduction">Introduction</a></div>
+                <div class="nav-item"><a href="#installation">Installation</a></div>
+                <div class="nav-item"><a href="#core-concepts">Core Concepts</a></div>
+                <div class="nav-item"><a href="#evaluate-watermark">Evaluate Your Watermark</a></div>
+                <div class="nav-item"><a href="#evaluate-attacker">Evaluate Your Attacker</a></div>
+                <div class="nav-section-title">Legal</div>
+                <div class="nav-item"><a href="#license">License</a></div>
+            </nav>
+        </aside>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- API Reference Overview -->
+            <section class="api-section" id="overview">
+                <h2>API Reference Overview</h2>
+                <p>WatermarkLab provides a comprehensive set of modules and functions for the development, evaluation, and comparison of image watermarking techniques. This API reference details the core components of the library, including evaluation frameworks, watermark models, attack methods, evaluation metrics, and data handling utilities.</p>
+                <div class="module-cards">
+                    <div class="module-card">
+                        <h4>laboratories</h4>
+                        <p>Core evaluation frameworks that orchestrate testing pipelines for both PGW and IGW models.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>watermarks</h4>
+                        <p>Implementation of various watermarking algorithms, including both PGW and IGW approaches.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>attackers</h4>
+                        <p>Comprehensive collection of image attacks to test watermark robustness.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>metrics</h4>
+                        <p>Evaluation metrics for measuring visual quality and watermark robustness.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>datasets</h4>
+                        <p>Data loading utilities and dataset classes for handling various image data sources.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>steganography</h4>
+                        <p>Steganographic techniques for information hiding in digital images.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>draw</h4>
+                        <p>Utilities for visualizing watermarking results and generating plots.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>tools</h4>
+                        <p>Various utility functions and helper classes for watermarking research.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Introduction Section -->
+            <section class="api-section" id="introduction">
+                <h2>Introduction</h2>
+                <p>WatermarkLab is a comprehensive Python toolkit for the development, evaluation, and comparison of robust image watermarking techniques. It supports both Post-Generation Watermarking (PGW) and In-Generation Watermarking (IGW) approaches, providing a unified framework for benchmarking watermarking algorithms under various attack scenarios.</p>
+                <h3>Key Features</h3>
+                <ul class="feature-list">
+                    <li>Unified evaluation pipeline for both PGW and IGW models</li>
+                    <li>Extensive collection of image attacks for robustness testing</li>
+                    <li>Comprehensive set of evaluation metrics</li>
+                    <li>Modular design for easy extension</li>
+                    <li>Structured result reporting with visualizations</li>
+                </ul>
+            </section>
+
+            <!-- Installation Section -->
+            <section class="api-section" id="installation">
+                <h2>Installation</h2>
+                <h3>Installation Command</h3>
+                <div class="code-block">
+                    <!-- 为代码块指定语言 -->
+                    <pre><code class="language-python">pip install watermarklab</code></pre>
+                </div>
+                <h3>Download Resources</h3>
+                <div class="code-block">
+                    <!-- 为代码块指定语言 -->
+                    <pre><code class="language-python">huggingface-cli download chenoly/watermarklab
+huggingface-cli download stabilityai/stable-diffusion-2-1-base</code></pre>
+                </div>
+            </section>
+
+            <!-- Core Concepts Section -->
+            <section class="api-section" id="core-concepts">
+                <h2>Core Concepts</h2>
+                <h3>Watermark Model Types</h3>
+                <div class="module-cards">
+                    <div class="module-card">
+                        <h4>PGW (Post-Generation Watermarking)</h4>
+                        <p>Watermark is embedded into pre-existing images after they have been created.</p>
+                    </div>
+                    <div class="module-card">
+                        <h4>IGW (In-Generation Watermarking)</h4>
+                        <p>Watermark is embedded during the image generation process (e.g., in diffusion models).</p>
+                    </div>
+                </div>
+                <h3>Evaluation Pipeline</h3>
+                <p>The library provides a standardized evaluation process consisting of:</p>
+                <ol>
+                    <li>Embedding watermark into cover images/prompts</li>
+                    <li>Applying various attacks (noise, compression, geometric transformations)</li>
+                    <li>Extracting watermark from attacked images</li>
+                    <li>Computing evaluation metrics</li>
+                    <li>Generating comprehensive result reports</li>
+                </ol>
+            </section>
+
+                        <!-- Evaluate Watermark Section -->
+            <section class="api-section" id="evaluate-watermark">
+                <h2>Benchmarking IGWs</h2>
+                <p>Here's a quick example of how to use WatermarkLab for evaluating your custom watermark model:</p>
+                <div class="code-block">
+                    <pre><code class="language-python">import watermarklab as wl
+from watermarklab.utils.data import DataLoader
+from watermarklab.datasets import MS_COCO_2017_VAL_PROMPTS
+from watermarklab.attackers.attackerloader import AttackersWithFactorsModel
+from watermarklab.watermarks.IGWs import StableSignature, GaussianShading, TreeRing
+import warnings
+
+
+warnings.filterwarnings('ignore')
+default_attackers = AttackersWithFactorsModel()
+
+gaussianshading = GaussianShading(local_files_only=True)
+mscoco_256 = MS_COCO_2017_VAL_PROMPTS(bit_len=256)
+wl.evaluate("save_results/IGWs/", gaussianshading, default_attackers, DataLoader(mscoco_256, batch_size=128), noise_save=True)
+
+treering = TreeRing(local_files_only=True)
+mscoco_1 = MS_COCO_2017_VAL_PROMPTS(bit_len=1)
+wl.evaluate("save_results/IGWs/", treering, default_attackers, DataLoader(mscoco_1, batch_size=32), noise_save=True)
+
+stablesignature = StableSignature(local_files_only=True)
+mscoco_48 = MS_COCO_2017_VAL_PROMPTS(bit_len=48)
+wl.evaluate("save_results/IGWs/", stablesignature, default_attackers, DataLoader(mscoco_48, batch_size=32), need_cover=True, noise_save=True)
+</code></pre>
+                </div>
+            </section>
+
+                                    <!-- Evaluate Watermark Section -->
+            <section class="api-section" id="evaluate-PGWs">
+                <h2>Benchmarking PGWs</h2>
+                <p>Here's a quick example of how to use WatermarkLab for evaluating your custom watermark model:</p>
+                <div class="code-block">
+                    <pre><code class="language-python">import watermarklab as wl
+from watermarklab.watermarks.PGWs import VINE
+from watermarklab.utils.data import DataLoader
+from watermarklab.datasets import MS_COCO_2017_VAL_IMAGES
+from watermarklab.attackers.attackerloader import AttackersWithFactorsModel
+from watermarklab.watermarks.PGWs import rivaGAN, dctDwtSvd, TrustMark, StegaStamp, InvisMark
+import warnings
+
+warnings.filterwarnings('ignore')
+
+
+default_attackers = AttackersWithFactorsModel()
+
+mscoco2017_256_32 = MS_COCO_2017_VAL_IMAGES(im_size=256, bit_len=32)
+dataloader_256_32 = DataLoader(mscoco2017_256_32, batch_size=32)
+
+rivagan = rivaGAN(bits_len=32, img_size=256)
+wl.evaluate("save_results/PGWs", rivagan, default_attackers, dataloader_256_32, mode='decode', noise_save=True)
+
+dctdwtsvd = dctDwtSvd(bits_len=32, img_size=256)
+wl.evaluate("save_results/PGWs", dctdwtsvd, default_attackers, dataloader_256_32, mode='decode', noise_save=True)
+
+mscoco2017_256_100 = MS_COCO_2017_VAL_IMAGES(im_size=256, bit_len=100)
+dataloader_256_100 = DataLoader(mscoco2017_256_100, batch_size=32)
+invismark = InvisMark(bits_len=100, img_size=256)
+wl.evaluate("save_results/PGWs", invismark, default_attackers, dataloader_256_100, mode='decode', noise_save=True)
+
+trustmark = TrustMark(bits_len=100, img_size=256)
+wl.evaluate("save_results/PGWs", trustmark, default_attackers, dataloader_256_100, mode='decode', noise_save=True)
+
+mscoco2017_400_100 = MS_COCO_2017_VAL_IMAGES(im_size=400, bit_len=100)
+dataloader_400_100 = DataLoader(mscoco2017_400_100, batch_size=16)
+stegastamp = StegaStamp(bits_len=100, img_size=400)
+wl.evaluate("save_results/PGWs", stegastamp, default_attackers, dataloader_400_100, mode='decode', noise_save=True)
+
+
+mscoco2017_256_100 = MS_COCO_2017_VAL_IMAGES(im_size=256, bit_len=100)
+dataloader_256_100 = DataLoader(mscoco2017_256_100, batch_size=32)
+vine = VINE(bits_len=100, img_size=256)
+wl.evaluate("save_results/PGWs", vine, default_attackers, dataloader_256_100, noise_save=True)</code></pre>
+                </div>
+            </section>
+
+            <!-- Evaluate Watermark Section -->
+            <section class="api-section" id="evaluate-watermark">
+                <h2>How to Evaluate Your Watermark Model?</h2>
+                <p>Here's a quick example of how to use WatermarkLab for evaluating your custom watermark model:</p>
+                <div class="code-block">
+                    <pre><code class="language-python">from numpy import ndarray
+import watermarklab as wl
+from typing import List, Any
+from watermarklab.utils.data import DataLoader
+from watermarklab.datasets import MS_COCO_2017_VAL_IMAGES
+from watermarklab.utils.basemodel import BaseWatermarkModel, Result
+from watermarklab.attackers.attackerloader import AttackersWithFactorsModel
+
+
+class YourWatermark(BaseWatermarkModel):
+    """Skeleton for a custom watermark model. Implement `embed`, `extract`, `recover`."""
+    def __init__(self, bits_len: int, img_size: int, modelname: str):
+        super().__init__(bits_len, img_size, modelname)
+
+    def embed(self, cover_list: List[Any], secrets: List[Any]) -> Result:
+        """Embed watermark into cover data."""
+        pass # Replace with your logic
+
+    def extract(self, stego_list: List[ndarray]) -> Result:
+        """Extract watermark from stego data."""
+        pass # Replace with your logic
+
+    def recover(self, stego_list: List[ndarray]) -> Result:
+        """Recover original cover data (for reversible watermarking)."""
+        pass # Replace with your logic or handle if not applicable
+
+
+# --- Set Up Evaluation ---
+default_attackers = AttackersWithFactorsModel() # Default set of attackers
+
+# Instantiate your model (replace `your_payload` and `your_img_size`)
+your_payload = 100
+your_img_size = 400
+stegastamp = YourWatermark(bits_len=your_payload, img_size=your_img_size, modelname="YourModelName")
+
+# Load dataset: MS COCO 2017 validation images
+kodak24_400_100 = MS_COCO_2017_VAL_IMAGES(im_size=your_img_size, bit_len=your_payload, image_num=500)
+# Create DataLoader for batched processing
+dataloader_400_100 = DataLoader(kodak24_400_100, batch_size=64)
+
+
+# --- Run Evaluation ---
+# Evaluate your model
+wl.evaluate("save_results/PGWs", stegastamp, default_attackers, dataloader_400_100)
+
+# --- Visualize Results (Optional) ---
+# Plot robustness results
+wl.draw.plot_model_robustness_under_single_attack([f"save_results/PGWs/{stegastamp.modelname}"], "save_draw")</code></pre>
+                </div>
+            </section>
+
+            <!-- Evaluate Watermark Section -->
+            <section class="api-section" id="result-visualization">
+                <h2>How to visualize results?</h2>
+                <p>Here's a quick example of how to use WatermarkLab for evaluating your custom watermark model:</p>
+                <div class="code-block">
+                    <pre><code class="language-python">import watermarklab as wl
+from watermarklab.attackers.attackerloader import AttackersWithFactorsModel
+
+results = ['saved_all_json/result_dctDwtSvd.json',
+           'saved_all_json/result_rivaGAN.json',
+           'saved_all_json/result_TrustMark-Q.json',
+           'saved_all_json/result_InvisMark.json',
+           'saved_all_json/result_StegaStamp.json',
+           'saved_all_json/result_VINE-R.json',
+           'saved_all_json/result_GaussianShading.json',
+           'saved_all_json/result_StableSignature.json',
+           'saved_all_json/result_TreeRing-Ring.json']
+
+default_attackers = AttackersWithFactorsModel()
+wl.draw.plot_model_robustness_under_single_attack(results, "draw_ALL/MR_SA")
+wl.draw.plot_model_robustness_under_all_attack(results, "draw_ALL/MR_AA")
+wl.draw.plot_model_robustness_scores_under_all_attacks(results, "draw_ALL/MRS_AA")
+wl.draw.plot_model_robustness_ranking_under_single_attack(results, "draw_ALL/MRK_SA")
+wl.draw.test_compute_overall_robustness_scores(results)
+wl.draw.plot_model_robustness_ranking_by_attacker_group(results, "draw_ALL/MRK_GA", default_attackers.attacker_groups)
+wl.draw.plot_model_overall_robustness_ranking(results, "draw_ALL/MRK_MO")
+wl.draw.plot_all_attack_ranking(results, "draw_ALL/ARK")
+wl.draw.plot_attack_effectiveness_at_tpr_levels(results, "draw_ALL/ARK_TPR", tpr_levels=[0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1])
+wl.draw.plot_visual_quality(results, "draw_ALL/VQ", show_dataset_name=False)
+wl.draw.plot_stego_visualization(results, "draw_ALL/MVC")
+wl.draw.plot_attack_visualization(results, "draw_ALL/MVC")
+</code></pre>
+                </div>
+            </section>
+
+            <!-- Evaluate Attacker Section -->
+            <section class="api-section" id="evaluate-attacker">
+                <h2>How to Evaluate Your Attacker?</h2>
+                <p>Here's a quick example of how to use WatermarkLab for evaluating your custom attacker:</p>
+                <div class="code-block">
+                    <!-- 为代码块指定语言 -->
+                    <pre><code class="language-python">from typing import List
+from numpy import ndarray
+import watermarklab as wl
+from watermarklab.utils.data import DataLoader
+from watermarklab.watermarks.PGWs import StegaStamp  # Example watermark model
+from watermarklab.datasets import MS_COCO_2017_VAL_IMAGES  # Example dataset
+from watermarklab.utils.basemodel import BaseTestAttackModel, AttackerWithFactors
+from watermarklab.attackers.attackerloader import AttackersWithFactorsModel
+
+
+# --- Define Your Custom Attacker ---
+class YourAttacker(BaseTestAttackModel):
+    """
+    Example class for a user-defined attacker.
+    You need to inherit from BaseTestAttackModel and implement the attack method.
+    """
+
+    def __init__(self, noisename: str, factor_inversely_related: bool):
+        """
+        Initializes the custom attacker.
+
+        Args:
+            noisename (str): Name of the attacker, used for identification and display.
+            factor_inversely_related (bool): 
+                Indicates if the attack factor is inversely related to the attack strength.
+                E.g., JPEG quality factor: higher value means less distortion.
+        """
+        # Call the parent class constructor
+        super().__init__(noisename, factor_inversely_related)
+        # You can add custom attributes here
+
+    def attack(self, stego_img: List[ndarray], cover_img: List[ndarray], factor: float) -> List[ndarray]:
+        """
+        Applies the attack to the watermarked (stego) images.
+
+        Args:
+            stego_img (List[ndarray]): List of watermarked images (Stego images).
+            cover_img (List[ndarray]): List of original cover images (may be used as reference).
+            factor (float): Factor controlling the intensity of the attack.
+
+        Returns:
+            List[ndarray]: List of images after the attack has been applied.
+        """
+        # --- Implement your attack logic here ---
+        return stego_img  # Placeholder, replace with actual attack logic
+
+
+# --- Set Up Evaluation ---
+# 1. Configure watermark model parameters
+your_payload = 100  # Watermark bit length
+your_img_size = 400  # Image size (assumed square)
+
+# 2. Instantiate the watermark model (using StegaStamp as an example)
+stegastamp = StegaStamp(bits_len=your_payload, img_size=your_img_size)
+
+# 3. Configure your custom attacker
+your_attacker_factors = [1, 2, 3, 4, 5, 6, 7]  # Define attack strength factors to test
+yourattacker = YourAttacker(
+    noisename="YourModelName",  # Your attacker's name
+    factor_inversely_related=False  # Set based on your attack's characteristics
+)
+
+# 4. Wrap your attacker in AttackerWithFactors for the evaluation framework
+#    This specifies the attacker's name, factors, and symbol for display/plots
+your_custom_attacker_config = AttackerWithFactors(
+    attacker=yourattacker,
+    attackername="YourAttackerName",  # Name for display in results/plots
+    factors=your_attacker_factors,  # List of attack strength factors
+    factorsymbol="YourFactorLatexSymbol"  # Symbol for the factor (e.g., '$\sigma$')
+)
+
+# 5. Create AttackersWithFactorsModel instance, passing your custom attacker
+#    This ensures the evaluation uses only your defined attacker
+default_attackers = AttackersWithFactorsModel(
+    default_attackers=[your_custom_attacker_config]
+)
+
+# 6. Load the dataset
+#    Using MS COCO 2017 validation set images
+kodak24_400_100 = MS_COCO_2017_VAL_IMAGES(
+    im_size=your_img_size,  # Image size
+    bit_len=your_payload,  # Watermark bit length
+    image_num=500  # Number of images to use
+)
+
+# 7. Create DataLoader for batch processing
+dataloader_400_100 = DataLoader(kodak24_400_100, batch_size=64)
+
+# --- Run Evaluation ---
+# Use watermarklab's evaluate function to test the watermark model
+# against your custom attacker.
+# Parameters:
+# - save_path: Directory to save evaluation results.
+# - watermark_model: Instance of the watermark model to evaluate.
+# - noise_models: Instance containing attack configurations (your custom attacker).
+# - dataloader: DataLoader providing data.
+wl.evaluate(
+    "save_results/PGWs",  # Path to save results
+    stegastamp,  # Watermark model instance
+    default_attackers,  # Attack model instance (your custom attacker)
+    dataloader_400_100  # DataLoader instance
+)
+
+# --- Visualize Results (Optional) ---
+# Use watermarklab's plotting tool to generate an attack effectiveness ranking plot.
+# Parameters:
+# - result_paths: List of paths containing evaluation results.
+# - save_path: Directory to save the generated plots.
+wl.draw.plot_attack_effectiveness_ranking(
+    [f"save_results/PGWs/{stegastamp.modelname}"],  # Path to evaluation results
+    "save_draw"  # Path to save plots
+)</code></pre>
+                </div>
+            </section>
+
+            <section class="api-section" id="license">
+                <h2>License</h2>
+                <p>WatermarkLab is released under the MIT License.</p>
+                <div class="code-block">
+                    <pre><code class="language-python">Copyright (c) 2025 Jiale Chen <chenoly@outlook.com>. All rights reserved.
+SPDX-License-Identifier: MIT</code></pre>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+        // Close sidebar when clicking on a nav item (mobile)
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 992) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        });
+        // Active nav item highlighting
+        const sections = document.querySelectorAll('.api-section');
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.querySelector('a').getAttribute('href') === `#${current}`) {
+                    item.classList.add('active');
+                }
+            });
+        });
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                window.scrollTo({
+                    top: targetElement.offsetTop - 20,
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // --- Prism.js and Copy Button Functionality ---
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const prismCoreScript = document.createElement('script');
+            prismCoreScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js';
+            prismCoreScript.onload = function() {
+                const prismAutoloaderScript = document.createElement('script');
+                prismAutoloaderScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js';
+                prismAutoloaderScript.onload = function() {
+                    const prismPythonScript = document.createElement('script');
+                    prismPythonScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js';
+                    prismPythonScript.onload = function() {
+                        Prism.highlightAll();
+
+                        // --- 添加复制按钮 ---
+                        const codeBlocks = document.querySelectorAll('.code-block');
+                        codeBlocks.forEach(block => {
+                            const pre = block.querySelector('pre[class*="language-"]');
+                            if (pre) {
+                                // 创建复制按钮
+                                const button = document.createElement('button');
+                                button.className = 'copy-button';
+                                button.textContent = 'Copy';
+                                button.type = 'button';
+
+                                button.addEventListener('click', () => {
+                                    const code = pre.querySelector('code').textContent;
+
+                                    navigator.clipboard.writeText(code).then(() => {
+                                        const originalText = button.textContent;
+                                        button.textContent = 'Copied!';
+                                        button.classList.add('copied');
+                                        setTimeout(() => {
+                                            button.textContent = originalText;
+                                            button.classList.remove('copied');
+                                        }, 2000);
+                                    }).catch(err => {
+                                        console.error('Failed to copy text: ', err);
+                                        button.textContent = 'Failed!';
+                                        setTimeout(() => {
+                                            button.textContent = 'Copy';
+                                        }, 2000);
+                                    });
+                                });
+
+                                pre.appendChild(button);
+                            }
+                        });
+                    };
+                    document.head.appendChild(prismPythonScript);
+                };
+                document.head.appendChild(prismAutoloaderScript);
+            };
+            document.head.appendChild(prismCoreScript);
+        });
+        // --- End Prism.js and Copy Button Functionality ---
+
+    </script>
+    <!-- Back to Home Button Icon -->
+    <a href="../pages/navigation.html" class="back-to-home" title="Back to Home">
+        <i class="fa fa-home"></i>
+    </a>
+    <!-- Load Font Awesome Icon Library (Generic CDN) - Fixed the trailing spaces -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+</body>
+</html>
