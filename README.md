@@ -1,7 +1,7 @@
 ```markdown
-# WatermarkLab
+# WatermarkLab website
 
-WatermarkLab is an interactive visualization website for watermark detection and analysis.
+WatermarkLab website is an interactive visualization website for watermark benchmarking.
 
 ## Installation and Usage
 
